@@ -1,13 +1,36 @@
 import { ChatMessage } from "./types";
 import { SessionStore } from "./sessionStore";
 
+// Lua script: atomically appends a message, trims history to limit, and resets TTL.
+// KEYS[1] = session key
+// ARGV[1] = role ("user" | "assistant")
+// ARGV[2] = content
+// ARGV[3] = historyLimit (number as string)
+// ARGV[4] = sessionTtlSeconds (number as string)
+const APPEND_SCRIPT = `
+local raw = redis.call("GET", KEYS[1])
+local data
+if raw then
+  data = cjson.decode(raw)
+  if type(data.history) ~= "table" then data = {history = {}} end
+else
+  data = {history = {}}
+end
+table.insert(data.history, {role = ARGV[1], content = ARGV[2]})
+local limit = tonumber(ARGV[3])
+while #data.history > limit do
+  table.remove(data.history, 1)
+end
+redis.call("SET", KEYS[1], cjson.encode(data), "EX", tonumber(ARGV[4]))
+return 1
+`;
+
 export async function createRedisSessionStore(params: {
   historyLimit: number;
   sessionTtlSeconds: number;
   redisUrl: string;
 }): Promise<SessionStore> {
   const { historyLimit, sessionTtlSeconds, redisUrl } = params;
-  // Optional dependency: only required when REDIS_URL is set.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const redis = require("redis") as typeof import("redis");
 
@@ -33,37 +56,29 @@ export async function createRedisSessionStore(params: {
     }
   }
 
-  async function save(sessionId: string, data: { history: ChatMessage[] }) {
-    await client.set(key(sessionId), JSON.stringify({ history: data.history }), {
-      EX: sessionTtlSeconds,
-    });
-  }
-
-  function trim(history: ChatMessage[]) {
-    if (history.length <= historyLimit) return;
-    history.splice(0, history.length - historyLimit);
-  }
-
   return {
     async getHistory(sessionId) {
       if (!historyLimit) return [];
       const data = await load(sessionId);
-      await save(sessionId, data);
+      // Refresh TTL without rewriting the whole value.
+      await client.expire(key(sessionId), sessionTtlSeconds);
       return data.history.slice();
     },
+
     async appendUser(sessionId, text) {
       if (!historyLimit) return;
-      const data = await load(sessionId);
-      data.history.push({ role: "user", content: text });
-      trim(data.history);
-      await save(sessionId, data);
+      await client.eval(APPEND_SCRIPT, {
+        keys: [key(sessionId)],
+        arguments: ["user", text, String(historyLimit), String(sessionTtlSeconds)],
+      });
     },
+
     async appendAssistant(sessionId, text) {
       if (!historyLimit) return;
-      const data = await load(sessionId);
-      data.history.push({ role: "assistant", content: text });
-      trim(data.history);
-      await save(sessionId, data);
+      await client.eval(APPEND_SCRIPT, {
+        keys: [key(sessionId)],
+        arguments: ["assistant", text, String(historyLimit), String(sessionTtlSeconds)],
+      });
     },
   };
 }
