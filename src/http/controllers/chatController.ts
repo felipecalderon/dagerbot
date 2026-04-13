@@ -36,7 +36,7 @@ export function createChatController(params: {
 
   async function handleChat(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const query = parseChatQuery(request.query);
+      const query = parseChatQuery(request.body);
       if (!query) {
         sendText(
           reply,

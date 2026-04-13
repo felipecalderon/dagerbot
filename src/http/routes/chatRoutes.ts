@@ -6,5 +6,5 @@ export function registerChatRoutes(params: {
 }) {
   const { app, controller } = params;
 
-  app.get("/chat", controller.handleChat);
+  app.post("/chat", controller.handleChat);
 }
