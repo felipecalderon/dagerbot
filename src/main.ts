@@ -26,15 +26,15 @@ async function main() {
         sessionTtlSeconds: config.sessionTtlSeconds,
       });
 
-  const allowIp = createFixedWindowLimiter(config.rateLimitIpPerMin);
-  const allowSession = createFixedWindowLimiter(config.rateLimitSessionPerMin);
+  const ipLimiter = createFixedWindowLimiter(config.rateLimitIpPerMin);
+  const sessionLimiter = createFixedWindowLimiter(config.rateLimitSessionPerMin);
 
   const chatService = createChatService({
     config,
     openai,
     sessionStore,
-    allowIp,
-    allowSession,
+    allowIp: (key) => ipLimiter.allow(key),
+    allowSession: (key) => sessionLimiter.allow(key),
   });
 
   const app = buildApp({ config, chatService });
