@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { AppConfig } from "../config/env";
 import { SessionStore } from "../core/sessionStore";
 import { HttpError } from "../http/httpError";
-import { DEFAULT_SYSTEM_PROMPT } from "../config/systemPrompt";
 
 export type ChatService = {
   sendMessage(params: {
@@ -35,10 +34,9 @@ export function createChatService(params: {
       }
 
       const history = await sessionStore.getHistory(sessionId);
-      await sessionStore.appendUser(sessionId, text);
 
       const messages = [
-        { role: "system", content: DEFAULT_SYSTEM_PROMPT },
+        { role: "system", content: config.systemPrompt },
       ].concat(history, [{ role: "user", content: text }]);
 
       const completion = await openai.chat.completions.create({
@@ -55,6 +53,9 @@ export function createChatService(params: {
         );
       }
 
+      // Only persist to history after a successful OpenAI response
+      // to avoid orphaned user messages if the API call fails.
+      await sessionStore.appendUser(sessionId, text);
       await sessionStore.appendAssistant(sessionId, reply);
 
       return { reply };

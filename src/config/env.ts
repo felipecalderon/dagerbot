@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { DEFAULT_SYSTEM_PROMPT } from "./systemPrompt";
 
 export type AppConfig = {
   port: number;
@@ -9,6 +10,7 @@ export type AppConfig = {
   rateLimitSessionPerMin: number;
   openAiModel: string;
   redisUrl: string;
+  systemPrompt: string;
 };
 
 function readNumber(name: string, fallback: number) {
@@ -28,5 +30,6 @@ export function loadConfig(): AppConfig {
     rateLimitSessionPerMin: readNumber("RATE_LIMIT_SESSION_PER_MIN", 100),
     openAiModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
     redisUrl: process.env.REDIS_URL || "",
+    systemPrompt: process.env.OPENAI_SYSTEM_PROMPT || DEFAULT_SYSTEM_PROMPT,
   };
 }
