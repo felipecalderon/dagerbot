@@ -11,6 +11,17 @@ export function createMemorySessionStore(params: {
     { history: ChatMessage[]; expiresAt: number }
   >();
 
+  const cleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [id, session] of sessions) {
+      if (session.expiresAt <= now) {
+        sessions.delete(id);
+      }
+    }
+  }, 5 * 60 * 1000);
+
+  if (cleanup.unref) cleanup.unref();
+
   function getSession(sessionId: string) {
     const now = Date.now();
     const existing = sessions.get(sessionId);
