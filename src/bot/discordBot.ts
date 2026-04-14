@@ -60,6 +60,8 @@ export async function startDiscordBot(params: {
     if (!isDm && !hasMention && !hasPrefix && !isReplyToBot) return;
 
     let text = raw;
+    let repliedText = "";
+    let repliedAuthorName = "";
     if (hasMention) {
       text = text.replace(mention, "").replace(mentionNick, "").trim();
     }
@@ -70,13 +72,31 @@ export async function startDiscordBot(params: {
     if (!text) return;
 
     try {
-      await message.channel.sendTyping();
       const senderName = isDm
         ? message.author.globalName ?? message.author.username
         : message.member?.nickname ??
           message.author.globalName ??
           message.author.username;
-      const formattedText = `${senderName}: ${text}`;
+      if (message.reference?.messageId) {
+        try {
+          const replied = await message.fetchReference();
+          repliedText = replied.content ?? "";
+          repliedAuthorName = replied.guildId
+            ? replied.member?.nickname ??
+              replied.author?.globalName ??
+              replied.author?.username ??
+              ""
+            : replied.author?.globalName ?? replied.author?.username ?? "";
+        } catch {
+          repliedText = "";
+          repliedAuthorName = "";
+        }
+      }
+      const combinedText = repliedText
+        ? `${repliedAuthorName || "Usuario"} dijo: ${repliedText}\n${senderName} dijo: ${text}`
+        : text;
+      await message.channel.sendTyping();
+      const formattedText = `${senderName}: ${combinedText}`;
       const sessionId = `${message.guildId ?? "dm"}:${message.channelId}:${message.author.id}`;
       const result = await chatService.sendMessage({
         sessionId,
