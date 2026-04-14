@@ -8,6 +8,7 @@ export type ChatService = {
     sessionId: string;
     text: string;
     ip: string;
+    senderName?: string;
   }): Promise<{ reply: string }>;
 };
 
@@ -21,7 +22,7 @@ export function createChatService(params: {
   const { config, openai, sessionStore, allowIp, allowSession } = params;
 
   return {
-    async sendMessage({ sessionId, text, ip }) {
+    async sendMessage({ sessionId, text, ip, senderName }) {
       if (!allowIp(ip)) {
         throw new HttpError(429, "rate_limited", "IP rate limit exceeded.");
       }
@@ -35,9 +36,11 @@ export function createChatService(params: {
 
       const history = await sessionStore.getHistory(sessionId);
 
+      const userContent = senderName ? `[${senderName}]: ${text}` : text;
+
       const messages = [
         { role: "system", content: config.systemPrompt },
-      ].concat(history, [{ role: "user", content: text }]);
+      ].concat(history, [{ role: "user", content: userContent }]);
 
       const completion = await openai.chat.completions.create({
         model: config.openAiModel,

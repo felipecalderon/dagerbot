@@ -94,10 +94,12 @@ export async function startDiscordBot(params: {
     try {
       await message.channel.sendTyping();
       const sessionId = `${message.guildId ?? "dm"}:${message.channelId}:${message.author.id}`;
+      const senderName = message.member?.displayName ?? message.author.displayName ?? message.author.username;
       const result = await chatService.sendMessage({
         sessionId,
         text,
         ip: `discord:${message.author.id}`,
+        senderName,
       });
       const reply = result.reply.length > MAX_DISCORD_MESSAGE_LENGTH
         ? result.reply.slice(0, MAX_DISCORD_MESSAGE_LENGTH - 3) + "..."
