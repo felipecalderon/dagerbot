@@ -42,7 +42,18 @@ async function main() {
   await app.listen({ port: config.port, host: "0.0.0.0" });
   app.log.info(`HTTP listening on port ${config.port}`);
 
-  await startDiscordBot({ chatService });
+  await startDiscordBot({ chatService, config });
+
+  async function shutdown() {
+    await app.close();
+    if ("disconnect" in sessionStore && typeof (sessionStore as any).disconnect === "function") {
+      await (sessionStore as any).disconnect();
+    }
+    process.exit(0);
+  }
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 }
 
 main().catch((err) => {

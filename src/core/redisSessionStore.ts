@@ -29,7 +29,7 @@ export async function createRedisSessionStore(params: {
   historyLimit: number;
   sessionTtlSeconds: number;
   redisUrl: string;
-}): Promise<SessionStore> {
+}): Promise<SessionStore & { disconnect(): Promise<void> }> {
   const { historyLimit, sessionTtlSeconds, redisUrl } = params;
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const redis = require("redis") as typeof import("redis");
@@ -51,12 +51,17 @@ export async function createRedisSessionStore(params: {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.history)) return { history: [] };
       return parsed;
-    } catch {
+    } catch (e) {
+      console.warn(`Failed to parse session data for ${sessionId}:`, e);
       return { history: [] };
     }
   }
 
   return {
+    async disconnect() {
+      await client.disconnect();
+    },
+
     async getHistory(sessionId) {
       if (!historyLimit) return [];
       const data = await load(sessionId);

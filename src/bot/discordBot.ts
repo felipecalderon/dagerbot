@@ -4,11 +4,15 @@ import {
   Partials,
 } from "discord.js";
 import { ChatService } from "../services/chatService";
+import { AppConfig } from "../config/env";
+
+const MAX_DISCORD_MESSAGE_LENGTH = 2000;
 
 export async function startDiscordBot(params: {
   chatService: ChatService;
+  config: AppConfig;
 }) {
-  const { chatService } = params;
+  const { chatService, config } = params;
 
   const token = process.env.DISCORD_TOKEN;
   if (!token) {
@@ -78,6 +82,15 @@ export async function startDiscordBot(params: {
 
     if (!text) return;
 
+    if (text.length > config.maxInputChars) {
+      try {
+        await message.reply(`mensaje demasiado largo (máx ${config.maxInputChars} caracteres).`);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
     try {
       await message.channel.sendTyping();
       const sessionId = `${message.guildId ?? "dm"}:${message.channelId}:${message.author.id}`;
@@ -86,11 +99,18 @@ export async function startDiscordBot(params: {
         text,
         ip: `discord:${message.author.id}`,
       });
-      await message.reply(result.reply);
+      const reply = result.reply.length > MAX_DISCORD_MESSAGE_LENGTH
+        ? result.reply.slice(0, MAX_DISCORD_MESSAGE_LENGTH - 3) + "..."
+        : result.reply;
+      await message.reply(reply);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unexpected error.";
-      await message.reply(`error: ${errorMessage}`);
+      try {
+        await message.reply(`error: ${errorMessage}`);
+      } catch {
+        console.error("Failed to send error reply:", errorMessage);
+      }
     }
   });
 
