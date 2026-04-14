@@ -63,6 +63,7 @@ export async function createRedisSessionStore(params: {
     },
 
     async getHistory(sessionId) {
+      // historyLimit=0 means history is disabled entirely.
       if (!historyLimit) return [];
       const data = await load(sessionId);
       // Refresh TTL without rewriting the whole value.

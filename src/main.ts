@@ -46,9 +46,8 @@ async function main() {
 
   async function shutdown() {
     await app.close();
-    if ("disconnect" in sessionStore && typeof (sessionStore as any).disconnect === "function") {
-      await (sessionStore as any).disconnect();
-    }
+    const store = sessionStore as { disconnect?(): Promise<void> };
+    await store.disconnect?.();
     process.exit(0);
   }
 

@@ -44,6 +44,7 @@ export function createMemorySessionStore(params: {
 
   return {
     async getHistory(sessionId) {
+      // historyLimit=0 means history is disabled entirely.
       if (!historyLimit) return [];
       return getSession(sessionId).history.slice();
     },

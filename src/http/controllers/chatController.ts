@@ -6,7 +6,6 @@ import { HttpError } from "../httpError";
 type ChatQuery = {
   sessionId: string;
   text: string;
-  conversationId?: string;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -19,9 +18,7 @@ function parseChatQuery(raw: unknown): ChatQuery | null {
   const text = raw.text;
   if (typeof sessionId !== "string") return null;
   if (typeof text !== "string") return null;
-  const conversationId =
-    typeof raw.conversationId === "string" ? raw.conversationId : undefined;
-  return { sessionId, text, conversationId };
+  return { sessionId, text };
 }
 
 export function createChatController(params: {
