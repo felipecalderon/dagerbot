@@ -48,12 +48,17 @@ export async function startDiscordBot(params: {
     const hasPrefix = raw.startsWith(prefix);
 
     let isReplyToBot = false;
+    let replyContext: string | null = null;
     if (message.reference?.messageId && client.user) {
       try {
         const replied = await message.fetchReference();
-        isReplyToBot = replied.author?.id === client.user.id;
+        if (replied.author?.id === client.user.id) {
+          isReplyToBot = true;
+        } else if (replied.content?.trim()) {
+          replyContext = `[${replied.author?.username ?? "unknown"} dijo: ${replied.content.trim()}]`;
+        }
       } catch {
-        isReplyToBot = false;
+        // ignore
       }
     }
 
@@ -65,6 +70,10 @@ export async function startDiscordBot(params: {
     }
     if (hasPrefix) {
       text = text.slice(prefix.length).trim();
+    }
+
+    if (replyContext) {
+      text = `${replyContext}\n${text}`.trim();
     }
 
     if (!text) return;
