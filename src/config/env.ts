@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { DEFAULT_SYSTEM_PROMPT } from "./systemPrompt";
+import { DEFAULT_SYSTEM_PROMPT } from "./prompt";
 
 export type AppConfig = {
   port: number;
@@ -11,6 +11,7 @@ export type AppConfig = {
   openAiModel: string;
   redisUrl: string;
   systemPrompt: string;
+  botTimezone: string;
 };
 
 function readNumber(name: string, fallback: number) {
@@ -31,5 +32,6 @@ export function loadConfig(): AppConfig {
     openAiModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
     redisUrl: process.env.REDIS_URL || "",
     systemPrompt: process.env.OPENAI_SYSTEM_PROMPT || DEFAULT_SYSTEM_PROMPT,
+    botTimezone: process.env.BOT_TIMEZONE || "America/Santiago",
   };
 }

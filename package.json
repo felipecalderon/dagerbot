@@ -1,7 +1,7 @@
 {
-  "name": "dagerbot",
+  "name": "malobot",
   "version": "1.0.0",
-  "description": "Backend en TypeScript para chat HTTP con OpenAI, usando async/await y Fastify.",
+  "description": "Backend en TypeScript para MalO — bot de Discord + API HTTP con OpenAI, Fastify y async/await.",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",

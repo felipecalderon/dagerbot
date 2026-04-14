@@ -38,20 +38,20 @@ export function createChatController(params: {
         sendText(
           reply,
           400,
-          "invalid_query: Que intentas hacer boludito, mandá como se debe el prompt sorete!"
+          "invalid_query: tu payload vino incompleto. necesito sessionId y text, los dos strings. sin eso ni me acerco."
         );
         return;
       }
 
       if (!query.text.trim()) {
-        sendText(reply, 400, "invalid_input: Boludín, no enviaste nada, no jodás");
+        sendText(reply, 400, "invalid_input: me mandaste aire. si quieres algo de mí, dame algo con qué trabajar.");
         return;
       }
       if (query.text.length > config.maxInputChars) {
         sendText(
           reply,
           413,
-          `input_too_large: Vamo a calmarno' mascapito solo te voy a decir 2 cosas: mucho texto (Max ${config.maxInputChars} chars)`
+          `input_too_large: tranquilo, tanto no. máx ${config.maxInputChars} caracteres — ve de a poco conmigo.`
         );
         return;
       }
@@ -70,7 +70,7 @@ export function createChatController(params: {
         return;
       }
       request.log.error({ err }, "chat_error");
-      sendText(reply, 500, "server_error: Unexpected error.");
+      sendText(reply, 500, "server_error: algo se rompió aquí adentro. no fuiste tú, fui yo — dame un momento y vuelve.");
     }
   }
 

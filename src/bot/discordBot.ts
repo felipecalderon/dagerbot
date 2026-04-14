@@ -84,7 +84,7 @@ export async function startDiscordBot(params: {
 
     if (text.length > config.maxInputChars) {
       try {
-        await message.reply(`mensaje demasiado largo (máx ${config.maxInputChars} caracteres).`);
+        await message.reply(`tranquilo, tanto no. máx ${config.maxInputChars} caracteres — ve de a poco conmigo.`);
       } catch {
         // ignore
       }

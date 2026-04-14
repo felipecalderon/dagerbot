@@ -24,13 +24,13 @@ export function createChatService(params: {
   return {
     async sendMessage({ sessionId, text, ip, senderName }) {
       if (!allowIp(ip)) {
-        throw new HttpError(429, "rate_limited", "IP rate limit exceeded.");
+        throw new HttpError(429, "rate_limited", "muchas señales desde la misma IP. baja un cambio, no te escapo.");
       }
       if (!allowSession(`session:${sessionId}`)) {
         throw new HttpError(
           429,
           "rate_limited",
-          "Session rate limit exceeded.",
+          "me hablas más rápido de lo que puedo procesar. pausa corta. no voy a ningún lado.",
         );
       }
 
@@ -38,13 +38,26 @@ export function createChatService(params: {
 
       const userContent = senderName ? `[${senderName}]: ${text}` : text;
 
+      const nowFormatted = new Intl.DateTimeFormat("es-CL", {
+        timeZone: config.botTimezone,
+        weekday: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date());
+
       const messages = [
         { role: "system", content: config.systemPrompt },
+        { role: "system", content: `Hora actual de la invocación: ${nowFormatted} (${config.botTimezone}).` },
       ].concat(history, [{ role: "user", content: userContent }]);
 
       const completion = await openai.chat.completions.create({
         model: config.openAiModel,
         messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
+        temperature: 0.85,
+        presence_penalty: 0.3,
+        frequency_penalty: 0.4,
+        max_tokens: 500,
       });
 
       const reply = completion.choices[0]?.message?.content || "";
@@ -52,7 +65,7 @@ export function createChatService(params: {
         throw new HttpError(
           502,
           "empty_response",
-          "OpenAI returned an empty response.",
+          "el modelo devolvió silencio. raro, pero pasa. inténtalo de nuevo.",
         );
       }
 
