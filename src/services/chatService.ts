@@ -1,6 +1,6 @@
-import OpenAI from "openai";
-import { AppConfig } from "../config/env";
-import { SessionStore } from "../core/sessionStore";
+import type { AppConfig } from "../config/env";
+import type { SessionStore } from "../core/sessionStore";
+import type { LLMProvider } from "../providers/types";
 import { HttpError } from "../http/httpError";
 
 export type ChatService = {
@@ -14,12 +14,12 @@ export type ChatService = {
 
 export function createChatService(params: {
   config: AppConfig;
-  openai: OpenAI;
+  provider: LLMProvider;
   sessionStore: SessionStore;
   allowIp: (key: string) => boolean;
   allowSession: (key: string) => boolean;
 }): ChatService {
-  const { config, openai, sessionStore, allowIp, allowSession } = params;
+  const { config, provider, sessionStore, allowIp, allowSession } = params;
 
   return {
     async sendMessage({ sessionId, text, ip, senderName }) {
@@ -35,7 +35,6 @@ export function createChatService(params: {
       }
 
       const history = await sessionStore.getHistory(sessionId);
-
       const userContent = senderName ? `[${senderName}]: ${text}` : text;
 
       const nowFormatted = new Intl.DateTimeFormat("es-CL", {
@@ -46,21 +45,13 @@ export function createChatService(params: {
         hour12: false,
       }).format(new Date());
 
-      const messages = [
-        { role: "system", content: config.systemPrompt },
-        { role: "system", content: `Hora actual de la invocación: ${nowFormatted} (${config.botTimezone}).` },
-      ].concat(history, [{ role: "user", content: userContent }]);
+      const system = [
+        config.systemPrompt,
+        `Hora actual de la invocación: ${nowFormatted} (${config.botTimezone}).`,
+      ].join("\n\n");
 
-      const completion = await openai.chat.completions.create({
-        model: config.openAiModel,
-        messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-        temperature: 0.85,
-        presence_penalty: 0.3,
-        frequency_penalty: 0.4,
-        max_tokens: 500,
-      });
+      const reply = await provider.complete({ system, history, userContent });
 
-      const reply = completion.choices[0]?.message?.content || "";
       if (!reply) {
         throw new HttpError(
           502,
@@ -69,8 +60,6 @@ export function createChatService(params: {
         );
       }
 
-      // Only persist to history after a successful OpenAI response
-      // to avoid orphaned user messages if the API call fails.
       await sessionStore.appendUser(sessionId, text);
       await sessionStore.appendAssistant(sessionId, reply);
 

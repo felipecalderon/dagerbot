@@ -3,17 +3,13 @@ import { loadConfig } from "./config/env";
 import { createMemorySessionStore } from "./core/memorySessionStore";
 import { createRedisSessionStore } from "./core/redisSessionStore";
 import { createFixedWindowLimiter } from "./core/rateLimit";
-import { createOpenAIClient } from "./infra/openaiClient";
+import { createProvider } from "./providers";
 import { createChatService } from "./services/chatService";
 import { startDiscordBot } from "./bot/discordBot";
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is required.");
-  }
-
   const config = loadConfig();
-  const openai = createOpenAIClient(process.env.OPENAI_API_KEY);
+  const provider = createProvider(config);
 
   const sessionStore = config.redisUrl
     ? await createRedisSessionStore({
@@ -31,7 +27,7 @@ async function main() {
 
   const chatService = createChatService({
     config,
-    openai,
+    provider,
     sessionStore,
     allowIp: (key) => ipLimiter.allow(key),
     allowSession: (key) => sessionLimiter.allow(key),
@@ -46,8 +42,7 @@ async function main() {
 
   async function shutdown() {
     await app.close();
-    const store = sessionStore as { disconnect?(): Promise<void> };
-    await store.disconnect?.();
+    await sessionStore.disconnect?.();
     process.exit(0);
   }
 

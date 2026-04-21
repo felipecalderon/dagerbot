@@ -1,12 +1,7 @@
+import { createClient } from "redis";
 import { ChatMessage } from "./types";
 import { SessionStore } from "./sessionStore";
 
-// Lua script: atomically appends a message, trims history to limit, and resets TTL.
-// KEYS[1] = session key
-// ARGV[1] = role ("user" | "assistant")
-// ARGV[2] = content
-// ARGV[3] = historyLimit (number as string)
-// ARGV[4] = sessionTtlSeconds (number as string)
 const APPEND_SCRIPT = `
 local raw = redis.call("GET", KEYS[1])
 local data
@@ -29,12 +24,10 @@ export async function createRedisSessionStore(params: {
   historyLimit: number;
   sessionTtlSeconds: number;
   redisUrl: string;
-}): Promise<SessionStore & { disconnect(): Promise<void> }> {
+}): Promise<SessionStore> {
   const { historyLimit, sessionTtlSeconds, redisUrl } = params;
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const redis = require("redis") as typeof import("redis");
 
-  const client = redis.createClient({ url: redisUrl });
+  const client = createClient({ url: redisUrl });
   client.on("error", (err: Error) => {
     console.error("Redis error:", err);
   });
@@ -50,9 +43,15 @@ export async function createRedisSessionStore(params: {
     try {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.history)) return { history: [] };
-      return parsed;
-    } catch (e) {
-      console.warn(`Failed to parse session data for ${sessionId}:`, e);
+      const history = parsed.history.filter(
+        (m: unknown): m is ChatMessage =>
+          m !== null &&
+          typeof m === "object" &&
+          ((m as ChatMessage).role === "user" || (m as ChatMessage).role === "assistant") &&
+          typeof (m as ChatMessage).content === "string",
+      );
+      return { history };
+    } catch {
       return { history: [] };
     }
   }
