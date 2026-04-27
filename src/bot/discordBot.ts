@@ -1,14 +1,21 @@
 import {
   Client,
+  Events,
   GatewayIntentBits,
   Partials,
 } from "discord.js";
-import { ChatService } from "../services/chatService";
+import type { ChatService } from "../services/chatService.js";
+import type { SettingsManager } from "../core/types.js";
+import { registerMessageCreateEvent } from "./events/onMessageCreate.js";
+import { createCommandManager } from "./commands/commandManager.js";
+import { createConfigCommand } from "./commands/config/index.js";
+// import { NewFeatureCommand } from "./commands/NewFeature/index.js"; <- future command
 
 export async function startDiscordBot(params: {
   chatService: ChatService;
-}) {
-  const { chatService } = params;
+  settingsManager: SettingsManager;
+}): Promise<Client | null> {
+  const { chatService, settingsManager } = params;
 
   const token = process.env.DISCORD_TOKEN;
   if (!token) {
@@ -16,6 +23,8 @@ export async function startDiscordBot(params: {
     return null;
   }
 
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  const guildId = process.env.DISCORD_GUILD_ID;
   const prefix = process.env.DISCORD_PREFIX || "!";
 
   const client = new Client({
@@ -28,11 +37,42 @@ export async function startDiscordBot(params: {
     partials: [Partials.Channel],
   });
 
-  client.on("clientReady", () => {
-    console.log(`Discord bot logged in as ${client.user?.tag ?? "unknown"}`);
+  // Prevent unhandled Discord API errors from crashing the process
+  client.on(Events.Error, (err) => {
+    console.error("[client] Unhandled error:", err.message);
   });
 
-  client.on("messageCreate", async (message) => {
+  // --- Command setup ---
+  const commands = createCommandManager();
+  commands.add(createConfigCommand(settingsManager));
+  // commands.add(create<Name>Command(settingsManager)); <- future command
+
+  client.on(Events.ClientReady, async () => {
+    console.log(`Discord bot logged in as ${client.user?.tag ?? "unknown"}`);
+
+    if (clientId) {
+      try {
+        await commands.registerToDiscord(clientId, token, guildId);
+      } catch (err) {
+        console.error("[commands] Failed to register slash commands.", err);
+      }
+    } else {
+      console.warn(
+        "[commands] DISCORD_CLIENT_ID not set — slash commands not registered."
+      );
+    }
+  });
+
+  client.on(Events.InteractionCreate, async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    await commands.route(interaction).catch((err) => {
+      console.error("[commands] Error handling interaction:", err);
+    });
+  });
+
+  registerMessageCreateEvent(client, settingsManager);
+
+  client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
 
     const raw = message.content ?? "";

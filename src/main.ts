@@ -6,6 +6,7 @@ import { createFixedWindowLimiter } from "./core/rateLimit";
 import { createOpenAIClient } from "./infra/openaiClient";
 import { createChatService } from "./services/chatService";
 import { startDiscordBot } from "./bot/discordBot";
+import { createSettingsManager } from "./config/settingsManager.js"
 
 async function main() {
   if (!process.env.OPENAI_API_KEY) {
@@ -37,12 +38,14 @@ async function main() {
     allowSession,
   });
 
+  const settingsManager = createSettingsManager();
+
   const app = buildApp({ config, chatService });
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
   app.log.info(`HTTP listening on port ${config.port}`);
 
-  await startDiscordBot({ chatService });
+  await startDiscordBot({ chatService, settingsManager });
 }
 
 main().catch((err) => {
