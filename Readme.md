@@ -28,13 +28,39 @@ Backend en TypeScript con Fastify para chatbot de discord en el antro usando Ope
 - Responde en DM a cualquier mensaje.
 - En servidores responde si mencionas al bot o si usas prefijo (por defecto `!`).
 - Usa el mismo backend/servicio interno que `/chat`.
+- `/config show` — muestra el estado de todos los módulos.
+- `/config meme` — configura el módulo de memes (canal, reacciones, modo solo-media).
 
 Variables de entorno:
 
 ```
 DISCORD_TOKEN=...
 DISCORD_PREFIX=!
+DISCORD_CLIENT_ID=...
+DISCORD_GUILD_ID=...  # solo para desarrollo, omitir en producción
+# Si no defines `DISCORD_GUILD_ID`, los comandos se registran globalmente.
 ```
+
+## Permisos requeridos
+
+Al invitar el bot, asegurarse de incluir los siguientes permisos y scopes:
+
+**Scopes:**
+- `bot`
+- `applications.commands`
+
+**Permisos del bot:**
+- `Send Messages`
+- `Add Reactions`
+- `Manage Messages`
+
+> [!WARNING]
+> Si se agrega una característica nueva que requiera permisos adicionales:
+> - **Permisos del bot** (`Send Messages`, `Add Reactions`, etc.) pueden actualizarse
+>   manualmente desde Configuración del servidor → Roles → rol del bot.
+> - **Scopes** nuevos (`applications.commands`, etc.) requieren re-invitar el bot
+>   con un enlace OAuth2 actualizado.
+
 
 ## Variables de entorno
 
@@ -60,6 +86,15 @@ Si no defines `OPENAI_SYSTEM_PROMPT`, se usa `src/config/systemPrompt.ts` por de
 - `src/services/` lógica de negocio (chat).
 - `src/core/` utilidades y stores de sesión.
 - `src/infra/` clientes externos (OpenAI).
+- `src/bot/` cliente de Discord, comandos slash y eventos.
+- `src/features/` lógica de características independiente de Discord.
+- `src/config/settingsManager.ts` configuración dinámica por servidor (SQLite).
+- `data/bot.db` base de datos SQLite generada automáticamente al arrancar.
+
+## Extensibilidad
+
+El bot tiene una arquitectura modular — agregar nuevas características sin tocar el núcleo.
+Ver [docs/extensibility-es.md](docs/extensibility-es.md) para la guía completa.
 
 ## Notas
 
