@@ -1,5 +1,8 @@
 [build]
 builder = "NIXPACKS"
 
+[build.nixpacks]
+pkgs = ["python3", "gcc", "gnumake"]
+
 [phases.install]
 cmds = ["pnpm install --no-frozen-lockfile"]
