@@ -1,6 +1,6 @@
 {
   "name": "dagerbot",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Backend en TypeScript para chat HTTP con OpenAI, usando async/await y Fastify.",
   "main": "dist/main.js",
   "scripts": {
