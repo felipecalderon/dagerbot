@@ -1,10 +1,15 @@
 import {
   MessageFlags,
+  PermissionFlagsBits,
   type ChatInputCommandInteraction,
   type SlashCommandBuilder,
+  ChannelType,
 } from "discord.js";
 import type { AppSettings, SettingsManager } from "../../../../core/types.js";
-import { MAX_REACT_EMOJIS } from "../../../../features/meme.js";
+import {
+  MAX_REACT_EMOJIS,
+  getRequiredPermissionChecks,
+} from "../../../../features/meme.js";
 
 type SubcommandMap = Map<
   string,
@@ -37,7 +42,11 @@ export function memeSubcommand(
       .setName("meme")
       .setDescription("View or update meme module settings")
       .addChannelOption((opt) =>
-        opt.setName("channel").setDescription("Meme channel").setRequired(false)
+        opt
+      .setName("channel")
+      .setDescription("Meme channel")
+      .setRequired(false)
+      .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
       )
       .addStringOption((opt) =>
         opt
@@ -64,6 +73,35 @@ export function memeSubcommand(
   handlers.set("meme", handleMeme);
 }
 
+async function validateBotChannelPermissions(
+  interaction: ChatInputCommandInteraction,
+  channelId: string,
+  checks: { checkViewChannel: boolean; checkAddReactions: boolean; checkManageMessages: boolean }
+): Promise<string | null> {
+  const botMember = await interaction.guild?.members.fetchMe();
+  if (!botMember) return "Could not verify bot permissions.";
+
+  if (checks.checkViewChannel) {
+    if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.ViewChannel)) {
+      return "❌ The bot cannot see that channel. Check its permissions.";
+    }
+  }
+
+  if (checks.checkAddReactions) {
+    if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.AddReactions)) {
+      return "❌ The bot cannot add reactions in that channel. Auto-react won't work.";
+    }
+  }
+
+  if (checks.checkManageMessages) {
+    if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.ManageMessages)) {
+      return "❌ The bot cannot delete messages in that channel. Media-only won't work.";
+    }
+  }
+
+  return null;
+}
+
 async function handleMeme(
   interaction: ChatInputCommandInteraction,
   settingsManager: SettingsManager
@@ -77,11 +115,19 @@ async function handleMeme(
   }
 
   const guildId = interaction.guildId;
-  const channel = interaction.options.getChannel("channel");
+  const channel = interaction.options.getChannel<ChannelType.GuildText>("channel");
   const autoReact = interaction.options.getString("auto-react");
   const emojisRaw = interaction.options.getString("emojis");
   const mediaOnly = interaction.options.getString("media-only");
   const nothingProvided = !channel && !autoReact && !emojisRaw && !mediaOnly;
+
+  if (channel && !interaction.guild?.channels.cache.has(channel.id)) {
+    await interaction.reply({
+      content: "❌ That channel does not belong to this server.",
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
 
   // No options — show current config
   if (nothingProvided) {
@@ -99,7 +145,7 @@ async function handleMeme(
     return;
   }
 
-  // Validate emojis before applying any change
+  // Validate emojis before anything else
   if (emojisRaw) {
     const emojis = parseEmojis(emojisRaw);
 
@@ -129,9 +175,39 @@ async function handleMeme(
     }
   }
 
+  // Read current settings to determine effective channel
   const current = await settingsManager.getSettings(guildId);
+
+  // Effective channel: the new one if provided, otherwise the already saved one
+  const effectiveChannelId = channel?.id ?? (current.meme.channelId || null);
+
+  // Determine which permission checks are needed based on what's being activated
+  const checks = getRequiredPermissionChecks({
+    effectiveChannelId,
+    activatingAutoReact: autoReact === "on",
+    activatingMediaOnly: mediaOnly === "on",
+  });
+
+  // Run bot permission checks if there's a channel to validate against
+  if (effectiveChannelId) {
+    const permissionError = await validateBotChannelPermissions(
+      interaction,
+      effectiveChannelId,
+      checks
+    );
+    if (permissionError) {
+      await interaction.reply({
+        content: permissionError,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+  }
+
+  // Apply changes
   const updated: AppSettings = JSON.parse(JSON.stringify(current));
   const changes: string[] = [];
+  const warnings: string[] = [];
 
   if (channel) {
     updated.meme.channelId = channel.id;
@@ -140,6 +216,9 @@ async function handleMeme(
   if (autoReact) {
     updated.meme.autoReact.enabled = autoReact === "on";
     changes.push(`Auto-react → ${autoReact === "on" ? "✅ on" : "❌ off"}`);
+    if (autoReact === "on" && !effectiveChannelId) {
+      warnings.push("⚠️ No channel configured yet. Set a channel for auto-react to work.");
+    }
   }
   if (emojisRaw) {
     const emojis = parseEmojis(emojisRaw);
@@ -149,12 +228,18 @@ async function handleMeme(
   if (mediaOnly) {
     updated.meme.mediaOnly.enabled = mediaOnly === "on";
     changes.push(`Media-only → ${mediaOnly === "on" ? "✅ on" : "❌ off"}`);
+    if (mediaOnly === "on" && !effectiveChannelId) {
+      warnings.push("⚠️ No channel configured yet. Set a channel for media-only to work.");
+    }
   }
 
   await settingsManager.saveSettings(guildId, updated);
 
+  const lines = [`✅ Meme settings updated:\n${changes.join("\n")}`];
+  if (warnings.length > 0) lines.push("", ...warnings);
+
   await interaction.reply({
-    content: `✅ Meme settings updated:\n${changes.join("\n")}`,
+    content: lines.join("\n"),
     flags: MessageFlags.Ephemeral,
   });
 }

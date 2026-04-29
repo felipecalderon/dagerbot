@@ -36,7 +36,8 @@ Variables de entorno:
 ```
 DISCORD_TOKEN=...
 DISCORD_PREFIX=!
-DISCORD_CLIENT_ID=...
+DISCORD_CLIENT_ID=... # Required for slash command registration
+CONFIG_PERMISSION=... # Permission required to use /config commands
 DISCORD_GUILD_ID=...  # solo para desarrollo, omitir en producción
 # Si no defines `DISCORD_GUILD_ID`, los comandos se registran globalmente.
 ```
