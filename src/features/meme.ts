@@ -13,3 +13,25 @@ export function hasMediaAttachment(contentTypes: (string | null)[]): boolean {
       MEDIA_MIME_PREFIXES.some((prefix) => type.startsWith(prefix))
   );
 }
+
+export type PermissionCheckContext = {
+  effectiveChannelId: string | null;
+  activatingAutoReact: boolean;
+  activatingMediaOnly: boolean;
+};
+
+export type PermissionChecks = {
+  checkViewChannel: boolean;
+  checkAddReactions: boolean;
+  checkManageMessages: boolean;
+};
+
+export function getRequiredPermissionChecks(
+  ctx: PermissionCheckContext
+): PermissionChecks {
+  return {
+    checkViewChannel: ctx.effectiveChannelId !== null,
+    checkAddReactions: ctx.activatingAutoReact && ctx.effectiveChannelId !== null,
+    checkManageMessages: ctx.activatingMediaOnly && ctx.effectiveChannelId !== null,
+  };
+}

@@ -30,3 +30,14 @@ export function loadConfig(): AppConfig {
     redisUrl: process.env.REDIS_URL || "",
   };
 }
+
+export const VALID_CONFIG_PERMISSIONS = [
+  "Administrator",
+  "ManageGuild",
+  "BanMembers",
+  "KickMembers",
+  "ModerateMembers",
+  "ManageChannels",
+] as const;
+
+export type ConfigPermission = (typeof VALID_CONFIG_PERMISSIONS)[number];
