@@ -1,6 +1,7 @@
 import {
   ChannelType,
   MessageFlags,
+  PermissionFlagsBits,
   type ChatInputCommandInteraction,
   type SlashCommandBuilder,
 } from "discord.js";
@@ -16,6 +17,31 @@ type SubcommandMap = Map<
   string,
   (i: ChatInputCommandInteraction, s: SettingsManager) => Promise<void>
 >;
+
+async function validateChannelGuardPermissions(
+  interaction: ChatInputCommandInteraction,
+  channelId: string
+): Promise<string | null> {
+  const botMember = await interaction.guild?.members.fetchMe();
+  if (!botMember) return "❌ Could not verify bot permissions.";
+
+  const errors: string[] = [];
+
+  if (!botMember.permissions.has(PermissionFlagsBits.BanMembers)) {
+    errors.push("❌ The bot cannot ban members, so the trap would never act.");
+  }
+
+  if (channelId) {
+    if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.ViewChannel)) {
+      errors.push("❌ The bot cannot see the trap channel, so it never sees what is posted there.");
+    }
+    if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.ManageMessages)) {
+      errors.push("❌ The bot cannot delete messages in the trap channel.");
+    }
+  }
+
+  return errors.length > 0 ? errors.join("\n") : null;
+}
 
 export function channelGuardSubcommand(
   builder: SlashCommandBuilder,
@@ -101,6 +127,7 @@ export function channelGuardSubcommand(
     let updatedGuard = { ...current.channelGuard };
     let hasChanges = false;
     const changes: string[] = [];
+    const warnings: string[] = [];
 
     if (channel) {
       updatedGuard.channelId = channel.id;
@@ -163,6 +190,25 @@ export function channelGuardSubcommand(
       return;
     }
 
+    // Arming a ban trap on a bot that cannot ban leaves it firing and failing in silence.
+    if (updatedGuard.enabled) {
+      const permissionError = await validateChannelGuardPermissions(
+        interaction,
+        updatedGuard.channelId
+      );
+      if (permissionError) {
+        await interaction.reply({
+          content: permissionError,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+    }
+
+    if (updatedGuard.enabled && !updatedGuard.channelId) {
+      warnings.push("⚠️ No trap channel configured. The guard does nothing until you set one.");
+    }
+
     if (hasChanges) {
       await settingsManager.saveSettings(guildId, {
         ...current,
@@ -209,8 +255,13 @@ export function channelGuardSubcommand(
       }
     }
 
+    const lines = [
+      `**Updated Channel Guard Settings:**\n${changes.map((c) => `• ${c}`).join("\n")}`,
+    ];
+    if (warnings.length > 0) lines.push("", ...warnings);
+
     await interaction.reply({
-      content: `**Updated Channel Guard Settings:**\n${changes.map((c) => `• ${c}`).join("\n")}`,
+      content: lines.join("\n"),
       flags: MessageFlags.Ephemeral,
     });
   });
