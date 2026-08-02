@@ -4,6 +4,7 @@ import {
   type SlashCommandBuilder,
 } from "discord.js";
 import type { SettingsManager } from "../../../../core/types.js";
+import { formatChannelGuardSettings } from "../../../../features/channelGuard.js";
 
 type SubcommandMap = Map<
   string,
@@ -52,14 +53,8 @@ async function handleShow(
       `  • goal: ${memeReward.goal} memes`,
       `  • message: ${memeReward.message || "not set"}`,
       ``,
-      `🛡️ **channel-guard**`,
-      `  • status: ${channelGuard.enabled ? "✅ on" : "❌ off"}`,
-      `  • channel: ${channelGuard.channelId ? `<#${channelGuard.channelId}>` : "not set"}`,
-      `  • ignored-roles: ${
-        channelGuard.ignoredRoleIds.length > 0
-          ? channelGuard.ignoredRoleIds.map((id) => `<@&${id}>`).join(", ")
-          : "none"
-      }`,
+      `🛡️ **channel-guard** — trap channel: everyone who posts there is banned`,
+      ...formatChannelGuardSettings(channelGuard),
     ].join("\n"),
     flags: MessageFlags.Ephemeral,
   });
