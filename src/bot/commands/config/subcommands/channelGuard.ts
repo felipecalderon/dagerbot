@@ -11,6 +11,7 @@ import { syncCucumberPanel } from "../../../events/listeners/channelGuardPanel.j
 import {
   MAX_PURGE_SECONDS,
   formatChannelGuardSettings,
+  parseRoleTokens,
 } from "../../../../features/channelGuard.js";
 
 type SubcommandMap = Map<
@@ -147,23 +148,37 @@ export function channelGuardSubcommand(
       hasChanges = true;
     }
 
-    for (const role of addRoles) {
-      if (!updatedGuard.ignoredRoleIds.includes(role.id)) {
-        updatedGuard.ignoredRoleIds = [...updatedGuard.ignoredRoleIds, role.id];
-        changes.push(`Added <@&${role.id}> to ignored roles`);
-        hasChanges = true;
+    const idsToAdd = addRoles.map((role) => role.id);
+    const rejected: string[] = [];
+
+    if (rawRolesStr) {
+      const { ids, invalid } = parseRoleTokens(rawRolesStr);
+      if (invalid.length > 0) rejected.push(`❌ Not a role mention or ID: ${invalid.join(", ")}`);
+      idsToAdd.push(...ids);
+    }
+
+    for (const id of idsToAdd) {
+      if (id === interaction.guildId) {
+        rejected.push("❌ @everyone would exempt the whole server and leave the trap inert.");
+      } else if (!interaction.guild?.roles.cache.has(id)) {
+        rejected.push(`❌ There is no role with id ${id} in this server.`);
       }
     }
 
-    if (rawRolesStr) {
-      // Parse role mentions <@&ID> or raw IDs
-      const matches = rawRolesStr.match(/\d+/g) ?? [];
-      for (const roleId of matches) {
-        if (!updatedGuard.ignoredRoleIds.includes(roleId)) {
-          updatedGuard.ignoredRoleIds = [...updatedGuard.ignoredRoleIds, roleId];
-          changes.push(`Added <@&${roleId}> to ignored roles`);
-          hasChanges = true;
-        }
+    // All or nothing: a whitelist applied halfway leaves people unprotected in silence.
+    if (rejected.length > 0) {
+      await interaction.reply({
+        content: [...new Set(rejected)].join("\n"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    for (const id of idsToAdd) {
+      if (!updatedGuard.ignoredRoleIds.includes(id)) {
+        updatedGuard.ignoredRoleIds = [...updatedGuard.ignoredRoleIds, id];
+        changes.push(`Added <@&${id}> to ignored roles`);
+        hasChanges = true;
       }
     }
 
