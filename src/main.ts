@@ -1,7 +1,6 @@
 import { buildApp } from "./app";
 import { loadConfig } from "./config/env";
 import { createFixedWindowLimiter } from "./core/rateLimit";
-import { createMongoSessionStore } from "./core/mongoSessionStore";
 import { createOpenAIClient } from "./infra/openaiClient";
 import { createChatService } from "./services/chatService";
 import { startDiscordBot } from "./bot/discordBot";
@@ -18,10 +17,6 @@ async function main() {
 
   const dataLayer = await createDataLayer();
   const settingsManager = await createSettingsManager(dataLayer.settingsRepository);
-  const sessionStore = createMongoSessionStore({
-    historyLimit: config.historyLimit,
-    sessionTtlSeconds: config.sessionTtlSeconds,
-  });
 
   const allowIp = createFixedWindowLimiter(config.rateLimitIpPerMin);
   const allowSession = createFixedWindowLimiter(config.rateLimitSessionPerMin);
@@ -29,7 +24,7 @@ async function main() {
   const chatService = createChatService({
     config,
     openai,
-    sessionStore,
+    sessionRepository: dataLayer.sessionRepository,
     allowIp,
     allowSession,
   });

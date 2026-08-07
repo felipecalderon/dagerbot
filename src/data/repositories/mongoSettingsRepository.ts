@@ -1,6 +1,6 @@
-import mongoose, { Schema } from "mongoose";
-import type { DbProvider } from "../types.js";
+import { Schema, type Model } from "mongoose";
 import type { SettingsRepository } from "../types.js";
+import type { MongoProvider } from "../providers/mongo.js";
 import { createStructureGuard } from "../mongoStructure.js";
 
 const COLLECTION = "guild_settings";
@@ -38,13 +38,17 @@ const validator = {
   },
 };
 
-const SettingsModel =
-  mongoose.models.GuildSettings ??
-  mongoose.model<SettingsDocument>("GuildSettings", settingsSchema);
+const MODEL_NAME = "GuildSettings";
 
-export function createSettingsRepository(_provider: DbProvider): SettingsRepository {
+export function createSettingsRepository(provider: MongoProvider): SettingsRepository {
+  const { connection } = provider;
+
+  const SettingsModel: Model<SettingsDocument> =
+    (connection.models[MODEL_NAME] as Model<SettingsDocument> | undefined) ??
+    connection.model<SettingsDocument>(MODEL_NAME, settingsSchema);
+
   const ready = createStructureGuard({
-    connection: mongoose.connection,
+    connection,
     model: SettingsModel,
     collection: COLLECTION,
     validator,
