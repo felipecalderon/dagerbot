@@ -5,6 +5,10 @@ import {
 } from "discord.js";
 import type { SettingsManager } from "../../../../core/types.js";
 import { formatChannelGuardSettings } from "../../../../features/channelGuard.js";
+import {
+  formatMemeSettings,
+  formatMemeRewardSettings,
+} from "../../../../features/meme.js";
 
 type SubcommandMap = Map<
   string,
@@ -41,17 +45,10 @@ async function handleShow(
       "**Bot Settings**",
       "",
       "🎭 **meme**",
-      `  • channel: ${meme.channelId ? `<#${meme.channelId}>` : "not set"}`,
-      `  • auto-react: ${meme.autoReact.enabled ? "✅ on" : "❌ off"}`,
-      `  • random-react: ${meme.autoReact.random ? "✅ on" : "❌ off"}`,
-      `  • emojis: ${meme.autoReact.emojis.join(" ")}`,
-      `  • media-only: ${meme.mediaOnly.enabled ? "✅ on" : "❌ off"}`,
+      ...formatMemeSettings(meme),
       ``,
       `🏆 **meme-reward**`,
-      `  • enabled: ${memeReward.enabled ? "✅ on" : "❌ off"}`,
-      `  • role: ${memeReward.roleId ? `<@&${memeReward.roleId}>` : "not set"}`,
-      `  • goal: ${memeReward.goal} memes`,
-      `  • message: ${memeReward.message || "not set"}`,
+      ...formatMemeRewardSettings(memeReward),
       ``,
       `🛡️ **channel-guard** — trap channel: everyone who posts there is banned`,
       ...formatChannelGuardSettings(channelGuard),
