@@ -17,21 +17,40 @@ type SubcommandMap = Map<
   (i: ChatInputCommandInteraction, s: SettingsManager) => Promise<void>
 >;
 
-// Unicode emoji or Discord custom emoji format <:name:id> / <a:name:id>
-const EMOJI_REGEX =
-  /^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|<a?:\w+:\d+>)$/u;
+// Discord custom emoji format <:name:id> / <a:name:id>. Capturing, so split()
+// hands the token back as a chunk of its own instead of dropping it.
+const CUSTOM_EMOJI = "(<a?:\\w+:\\d+>)";
+const CUSTOM_EMOJI_SPLIT = new RegExp(CUSTOM_EMOJI, "u");
+const CUSTOM_EMOJI_EXACT = new RegExp(`^${CUSTOM_EMOJI}$`, "u");
+
+// Flags and keycaps carry no Extended_Pictographic code point of their own.
+const EMOJI_GRAPHEME = /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u;
+
+// Matching per code point tears a skin tone, a flag or a ZWJ sequence into the
+// pieces it is built from; each piece validates on its own, gets stored, and
+// react() rejects it later. Graphemes keep the sequence whole.
+const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
 
 function isValidEmoji(value: string): boolean {
-  return EMOJI_REGEX.test(value.trim());
+  const token = value.trim();
+  if (CUSTOM_EMOJI_EXACT.test(token)) return true;
+  return [...graphemes.segment(token)].length === 1 && EMOJI_GRAPHEME.test(token);
 }
 
+function customEmojiId(token: string): string | null {
+  return /:(\d+)>$/u.exec(token)?.[1] ?? null;
+}
+
+// Handles both space-separated and consecutive emojis from Discord's picker.
 function parseEmojis(raw: string): string[] {
-  // Handles both space-separated and consecutive emojis from Discord's picker
-  return (
-    raw.trim().match(
-      /\p{Emoji_Presentation}|\p{Extended_Pictographic}|<a?:\w+:\d+>/gu
-    ) ?? []
-  );
+  return raw
+    .split(CUSTOM_EMOJI_SPLIT)
+    .flatMap((chunk) =>
+      CUSTOM_EMOJI_EXACT.test(chunk)
+        ? chunk
+        : [...graphemes.segment(chunk)].map((g) => g.segment)
+    )
+    .filter(isValidEmoji);
 }
 
 export function memeSubcommand(
@@ -171,10 +190,14 @@ async function handleMeme(
       return;
     }
 
-    const invalidEmojis = emojis.filter((e) => !isValidEmoji(e));
-    if (invalidEmojis.length > 0) {
+    // The bot can only react with custom emojis of the server it is reacting in.
+    const foreign = emojis.filter((e) => {
+      const id = customEmojiId(e);
+      return id !== null && !interaction.guild?.emojis.cache.has(id);
+    });
+    if (foreign.length > 0) {
       await interaction.reply({
-        content: `❌ Invalid emoji(s): ${invalidEmojis.join(" ")}. Use unicode emojis or server custom emojis only.`,
+        content: `❌ Not from this server: ${foreign.join(" ")}. Custom emojis must belong to this server.`,
         flags: MessageFlags.Ephemeral,
       });
       return;
