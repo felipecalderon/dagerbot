@@ -8,50 +8,16 @@ import {
 import type { AppSettings, SettingsManager } from "../../../../core/types.js";
 import {
   MAX_REACT_EMOJIS,
+  customEmojiId,
   formatMemeSettings,
   getRequiredPermissionChecks,
+  parseEmojis,
 } from "../../../../features/meme.js";
 
 type SubcommandMap = Map<
   string,
   (i: ChatInputCommandInteraction, s: SettingsManager) => Promise<void>
 >;
-
-// Discord custom emoji format <:name:id> / <a:name:id>. Capturing, so split()
-// hands the token back as a chunk of its own instead of dropping it.
-const CUSTOM_EMOJI = "(<a?:\\w+:\\d+>)";
-const CUSTOM_EMOJI_SPLIT = new RegExp(CUSTOM_EMOJI, "u");
-const CUSTOM_EMOJI_EXACT = new RegExp(`^${CUSTOM_EMOJI}$`, "u");
-
-// Flags and keycaps carry no Extended_Pictographic code point of their own.
-const EMOJI_GRAPHEME = /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u;
-
-// Matching per code point tears a skin tone, a flag or a ZWJ sequence into the
-// pieces it is built from; each piece validates on its own, gets stored, and
-// react() rejects it later. Graphemes keep the sequence whole.
-const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
-
-function isValidEmoji(value: string): boolean {
-  const token = value.trim();
-  if (CUSTOM_EMOJI_EXACT.test(token)) return true;
-  return [...graphemes.segment(token)].length === 1 && EMOJI_GRAPHEME.test(token);
-}
-
-function customEmojiId(token: string): string | null {
-  return /:(\d+)>$/u.exec(token)?.[1] ?? null;
-}
-
-// Handles both space-separated and consecutive emojis from Discord's picker.
-function parseEmojis(raw: string): string[] {
-  return raw
-    .split(CUSTOM_EMOJI_SPLIT)
-    .flatMap((chunk) =>
-      CUSTOM_EMOJI_EXACT.test(chunk)
-        ? chunk
-        : [...graphemes.segment(chunk)].map((g) => g.segment)
-    )
-    .filter(isValidEmoji);
-}
 
 export function memeSubcommand(
   builder: SlashCommandBuilder,
