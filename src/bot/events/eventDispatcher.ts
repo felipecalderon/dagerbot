@@ -23,23 +23,37 @@ export function registerEventDispatcher(
     if (message.author.bot) return;
 
     if (message.guildId) {
-      const settings = await settingsManager.getSettings(message.guildId);
+      // Without a catch, a failed read aborts the whole listener. discord.js
+      // turns the rejection into an error event, so the bot stays up, but
+      // nothing below runs, chat included. With it, only the guild features
+      // that need these settings are skipped.
+      const settings = await settingsManager
+        .getSettings(message.guildId)
+        .catch((err) => {
+          console.error(
+            `[settings] guild=${message.guildId}: unavailable, guild features skipped:`,
+            err
+          );
+          return null;
+        });
 
-      await handleChannelGuard(
-        message,
-        settings.channelGuard,
-        dataLayer.channelGuardRepository
-      ).catch((err) => {
-        console.error("[channelGuardFeature] Error:", err);
-      });
+      if (settings) {
+        await handleChannelGuard(
+          message,
+          settings.channelGuard,
+          dataLayer.channelGuardRepository
+        ).catch((err) => {
+          console.error("[channelGuardFeature] Error:", err);
+        });
 
-      await handleMeme(message, settings.meme).catch((err) => {
-        console.error("[memeFeature] Error:", err);
-      });
+        await handleMeme(message, settings.meme).catch((err) => {
+          console.error("[memeFeature] Error:", err);
+        });
 
-      await handleMemeReward(message, settings.memeReward, settings.meme, dataLayer.memeRepository).catch((err) => {
-        console.error("[memeRewardFeature] Error:", err);
-      });
+        await handleMemeReward(message, settings.memeReward, settings.meme, dataLayer.memeRepository).catch((err) => {
+          console.error("[memeRewardFeature] Error:", err);
+        });
+      }
     }
 
     if (aiChatEnabled) {
