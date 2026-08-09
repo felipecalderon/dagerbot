@@ -1,5 +1,6 @@
 import type { AppSettings, SettingsManager } from "../core/types.js";
 import type { SettingsRepository } from "../data/types.js";
+import { DEFAULT_PURGE_SECONDS } from "../features/channelGuard.js";
 
 /**
  * Dynamic settings manager — multi-server implementation.
@@ -36,7 +37,7 @@ function defaultSettings(): AppSettings {
       enabled: false,
       channelId: "",
       ignoredRoleIds: [],
-      deleteMessageSeconds: 3600,
+      deleteMessageSeconds: DEFAULT_PURGE_SECONDS,
     },
   };
 }
