@@ -40,7 +40,6 @@ export function createChatService(params: {
       }
 
       const history = await sessionRepository.getHistory(sessionId, policy);
-      await sessionRepository.append(sessionId, { role: "user", content: text }, policy);
 
       const messages = [
         { role: "system", content: DEFAULT_SYSTEM_PROMPT },
@@ -60,6 +59,7 @@ export function createChatService(params: {
         );
       }
 
+      await sessionRepository.append(sessionId, { role: "user", content: text }, policy);
       await sessionRepository.append(sessionId, { role: "assistant", content: reply }, policy);
 
       return { reply };
