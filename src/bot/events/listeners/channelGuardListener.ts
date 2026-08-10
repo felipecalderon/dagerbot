@@ -33,10 +33,25 @@ export async function handleChannelGuard(
     return;
   }
 
-  const hasIgnoredRole = member.roles.cache.some((role) =>
-    config.ignoredRoleIds.includes(role.id)
-  );
+  // roles.cache holds the member's roles minus the ones the bot has not cached,
+  // so anything checked against it can miss a role the member really has.
+  // _roles is the list the message payload carried, and it is always complete.
+  const rawRoles = (member as unknown as { _roles?: unknown })._roles;
+  const memberRoleIds = Array.isArray(rawRoles)
+    ? (rawRoles as string[])
+    : [...member.roles.cache.keys()];
+
+  const hasIgnoredRole = memberRoleIds.some((id) => config.ignoredRoleIds.includes(id));
   if (hasIgnoredRole) return;
+
+  // Permissions cannot be compared by id: discord.js adds them up from the role
+  // objects, so an uncached role is a permission the bot cannot see. Staff would
+  // then read as an ordinary member and get banned, which is the one thing this
+  // guard must never do.
+  if (!memberRoleIds.every((id) => message.guild?.roles.cache.has(id))) {
+    console.warn(`[channelGuard] ${context}: roles not cached, cannot verify — skipping`);
+    return;
+  }
 
   if (member.permissions.any(MODERATION_PERMISSIONS)) return;
 
