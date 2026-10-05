@@ -1,6 +1,6 @@
-import mongoose, { Schema } from "mongoose";
-import type { DbProvider } from "../types.js";
+import { Schema, type Model } from "mongoose";
 import type { MemeCount, MemeRepository } from "../types.js";
+import type { MongoProvider } from "../providers/mongo.js";
 import { createStructureGuard } from "../mongoStructure.js";
 
 type MemeDocument = {
@@ -51,10 +51,7 @@ const validator = {
 };
 
 const DUPLICATE_KEY = 11000;
-
-const MemeModel =
-  mongoose.models.GuildMemeCount ??
-  mongoose.model<MemeDocument>("GuildMemeCount", memeSchema);
+const MODEL_NAME = "GuildMemeCount";
 
 function rowToMemeCount(row: MemeDocument): MemeCount {
   return {
@@ -66,28 +63,34 @@ function rowToMemeCount(row: MemeDocument): MemeCount {
   };
 }
 
-// Adding count to $setOnInsert would raise ConflictingUpdateOperators, and it is
-// not needed: on an upsert, $inc starts from 0. The equality filter is what puts
-// guildId and userId into the inserted document.
-function incrementOnce(guildId: string, userId: string, now: number) {
-  return MemeModel.findOneAndUpdate(
-    { guildId, userId },
-    {
-      $setOnInsert: { startedAt: now },
-      $inc: { count: 1 },
-      $set: { updatedAt: now },
-    },
-    { upsert: true, returnDocument: "after" }
-  ).lean() as Promise<MemeDocument | null>;
-}
+export function createMemeRepository(provider: MongoProvider): MemeRepository {
+  const { connection } = provider;
 
-export function createMemeRepository(_provider: DbProvider): MemeRepository {
+  const MemeModel: Model<MemeDocument> =
+    (connection.models[MODEL_NAME] as Model<MemeDocument> | undefined) ??
+    connection.model<MemeDocument>(MODEL_NAME, memeSchema);
+
   const ready = createStructureGuard({
-    connection: mongoose.connection,
+    connection,
     model: MemeModel,
     collection: COLLECTION,
     validator,
   });
+
+  // Adding count to $setOnInsert would raise ConflictingUpdateOperators, and it
+  // is not needed: on an upsert, $inc starts from 0. The equality filter is what
+  // puts guildId and userId into the inserted document.
+  function incrementOnce(guildId: string, userId: string, now: number) {
+    return MemeModel.findOneAndUpdate(
+      { guildId, userId },
+      {
+        $setOnInsert: { startedAt: now },
+        $inc: { count: 1 },
+        $set: { updatedAt: now },
+      },
+      { upsert: true, returnDocument: "after" }
+    ).lean() as Promise<MemeDocument | null>;
+  }
 
   return {
     increment: async (guildId, userId) => {

@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { AppConfig } from "../config/env";
-import { SessionStore } from "../core/sessionStore";
+import { SessionRepository, SessionPolicy } from "../data/types";
 import { HttpError } from "../http/httpError";
 import { DEFAULT_SYSTEM_PROMPT } from "../config/systemPrompt";
 
@@ -15,11 +15,16 @@ export type ChatService = {
 export function createChatService(params: {
   config: AppConfig;
   openai: OpenAI;
-  sessionStore: SessionStore;
+  sessionRepository: SessionRepository;
   allowIp: (key: string) => boolean;
   allowSession: (key: string) => boolean;
 }): ChatService {
-  const { config, openai, sessionStore, allowIp, allowSession } = params;
+  const { config, openai, sessionRepository, allowIp, allowSession } = params;
+
+  const policy: SessionPolicy = {
+    historyLimit: config.historyLimit,
+    sessionTtlSeconds: config.sessionTtlSeconds,
+  };
 
   return {
     async sendMessage({ sessionId, text, ip }) {
@@ -34,8 +39,8 @@ export function createChatService(params: {
         );
       }
 
-      const history = await sessionStore.getHistory(sessionId);
-      await sessionStore.appendUser(sessionId, text);
+      const history = await sessionRepository.getHistory(sessionId, policy);
+      await sessionRepository.append(sessionId, { role: "user", content: text }, policy);
 
       const messages = [
         { role: "system", content: DEFAULT_SYSTEM_PROMPT },
@@ -55,7 +60,7 @@ export function createChatService(params: {
         );
       }
 
-      await sessionStore.appendAssistant(sessionId, reply);
+      await sessionRepository.append(sessionId, { role: "assistant", content: reply }, policy);
 
       return { reply };
     },

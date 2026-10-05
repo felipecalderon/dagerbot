@@ -212,15 +212,53 @@ export async function createDataLayer(): Promise<DataLayer> {
 
 **Estrategia de proveedores:**
 
-Cada proveedor de base de datos tiene su propia rama. La única diferencia entre
-ramas es `src/data/index.ts` y `package.json` — todo lo demás es idéntico.
+Cada proveedor de base de datos tiene su propia rama. Las ramas de desarrollo
+contienen los archivos de todos los proveedores, pero solo se compila e instala
+el proveedor activo. La diferencia entre ramas se limita a cuatro archivos:
+
+- `src/data/index.ts` — qué proveedor cablea la capa de datos, incluido el
+  repositorio de sesiones de chat
+- `tsconfig.json` — `exclude` de los archivos del proveedor inactivo
+- `package.json` — el driver que se instala
+- `pnpm-lock.yaml` — se regenera solo al instalar, pero está versionado y difiere
+
+Los archivos del proveedor inactivo quedan excluidos del build, así que su driver
+no hace falta en producción. Para tener soporte del editor al editarlos se instala
+como `devDependency`, que se omite en producción (`pnpm prune --prod`). Excepción:
+un driver con compilación nativa se omite por completo en las ramas que no lo usan,
+para no arriesgar el build en hostings limitados.
+
 El mantenedor decide cuál proveedor queda como default en `main`.
 
 **Agregar un nuevo proveedor:**
 
-Crear un archivo en `src/data/providers/` implementando el contrato `DbProvider`
-de `types.ts`. Luego crear las implementaciones de repositorio correspondientes
-en `src/data/repositories/`. Ver `mongoSettingsRepository` como referencia.
+1. Crear un archivo en `src/data/providers/` implementando el contrato `DbProvider`
+   de `types.ts`, y las implementaciones de repositorio correspondientes en
+   `src/data/repositories/`. Ver `mongoSettingsRepository` como referencia.
+2. Opcional: crear su repositorio de sesiones en `src/data/repositories/`
+   implementando el contrato `SessionRepository` de `types.ts`. Es opcional
+   porque **cualquier proveedor puede seguir usando `memorySessionRepository`**,
+   que no depende de ninguna base de datos y está disponible para todos. Se crea
+   uno propio solo cuando se quiere que el contexto sobreviva a los reinicios,
+   guardándolo en el mismo motor del proveedor. Ver `mongoSessionRepository.ts`
+   como referencia. En cualquier caso el historial es efímero: se recorta a
+   `historyLimit` y vence tras `sessionTtlSeconds`, ambos recibidos por llamada
+   en el `SessionPolicy`.
+3. Crear la rama del proveedor y ajustar los archivos listados arriba (el lockfile
+   se regenera solo al ejecutar `pnpm install`).
+4. Activar `rerere` antes del primer merge de mantenimiento:
+
+```bash
+git config rerere.enabled true
+```
+
+Los merges desde la rama principal hacia una rama de proveedor repiten siempre los
+mismos conflictos (los cuatro archivos de configuración). Con `rerere`, Git memoriza
+cómo se resolvió cada conflicto y re-aplica esa resolución automáticamente en los
+merges siguientes. Es configuración local del clon: cada máquina lo activa una vez.
+
+Toda decisión de almacenamiento —datos y chat— se toma en `src/data/index.ts`:
+el punto de arranque nunca nombra una implementación concreta.
 
 ## Permisos de Discord requeridos
 
