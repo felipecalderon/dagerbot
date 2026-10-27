@@ -34,7 +34,11 @@ async function main() {
   await app.listen({ port: config.port, host: "0.0.0.0" });
   app.log.info(`HTTP listening on port ${config.port}`);
 
-  await startDiscordBot({ chatService, settingsManager, dataLayer });
+  try {
+    await startDiscordBot({ chatService, settingsManager, dataLayer });
+  } catch (err) {
+    console.error("[discord] Failed to start Discord bot:", err);
+  }
 }
 
 main().catch((err) => {
