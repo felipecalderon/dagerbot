@@ -5,7 +5,9 @@ Backend en TypeScript con Fastify para chatbot de discord en el antro usando Ope
 ## Endpoints
 
 - `GET /health` → `{ ok: true }`
-- `POST /chat` → `{ reply: string }`
+- `GET /privacy` (o `/privacy-policy`) → Página HTML de política de privacidad (o JSON con `?format=json`)
+- `GET /terms` (o `/terms-of-service`) → Página HTML de términos de servicio (o JSON con `?format=json`)
+- `GET /chat` → `{ reply: string }`
 
 ### Body esperado
 

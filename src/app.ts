@@ -1,7 +1,9 @@
 import fastify from "fastify";
 import { AppConfig } from "./config/env";
 import { createChatController } from "./http/controllers/chatController";
+import { createLegalController } from "./http/controllers/legalController";
 import { registerChatRoutes } from "./http/routes/chatRoutes";
+import { registerLegalRoutes } from "./http/routes/legalRoutes";
 import { ChatService } from "./services/chatService";
 
 export function buildApp(params: {
@@ -14,8 +16,10 @@ export function buildApp(params: {
 
   app.get("/health", async () => ({ ok: true }));
 
-  const chatController = createChatController({ config, chatService });
+  const legalController = createLegalController();
+  registerLegalRoutes({ app, controller: legalController });
 
+  const chatController = createChatController({ config, chatService });
   registerChatRoutes({ app, controller: chatController });
 
   return app;
