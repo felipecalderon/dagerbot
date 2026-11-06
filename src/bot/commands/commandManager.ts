@@ -25,7 +25,7 @@ export function createCommandManager(deps: {
   const commands = new Map<string, BotCommand>();
 
   [
-    createConfigCommand(deps.settingsManager),
+    createConfigCommand(deps.settingsManager, deps.dataLayer.channelGuardRepository),
     createRankCommand({ memeRepository: deps.dataLayer.memeRepository }),
     // Add new commands here
 

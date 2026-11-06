@@ -1,9 +1,12 @@
 import type { Message } from "discord.js";
 import type { ChannelGuardSettings } from "../../../core/types.js";
+import type { ChannelGuardRepository } from "../../../data/types.js";
+import { syncCucumberPanel } from "./channelGuardPanel.js";
 
 export async function handleChannelGuard(
   message: Message,
-  config: ChannelGuardSettings
+  config: ChannelGuardSettings,
+  repository: ChannelGuardRepository
 ): Promise<void> {
   if (!config.enabled || !config.channelId || !message.guild) return;
   if (message.channelId !== config.channelId) return;
@@ -15,6 +18,8 @@ export async function handleChannelGuard(
     );
     if (hasIgnoredRole) return;
   }
+
+  const cucumberEaterName = message.member?.displayName ?? message.author.username;
 
   // Delete message first if possible
   try {
@@ -33,5 +38,16 @@ export async function handleChannelGuard(
     });
   } catch (err) {
     console.error("[channelGuardListener] Failed to ban user:", err);
+    return;
   }
+
+  try {
+    await repository.recordCatch(message.guild.id, cucumberEaterName, Date.now());
+  } catch (err) {
+    console.error("[channelGuardListener] Failed to record catch:", err);
+  }
+
+  await syncCucumberPanel(message.channel, message.guild.id, repository).catch((err) => {
+    console.error("[channelGuardListener] Failed to sync panel:", err);
+  });
 }

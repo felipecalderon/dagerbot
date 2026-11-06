@@ -102,6 +102,7 @@ Listeners actuales:
 |---|---|---|
 | `src/bot/events/listeners/memeListener.ts` | `MessageCreate` | Módulo meme + reward |
 | `src/bot/events/listeners/chatAiListener.ts` | `MessageCreate` | Chat con IA |
+| `src/bot/events/listeners/channelGuardListener.ts` | `MessageCreate` | Canal trampa anti-spam + panel |
 
 **Agregar una característica a un evento existente:**
 
@@ -272,6 +273,9 @@ el punto de arranque nunca nombra una implementación concreta.
 | `Add Reactions` | Módulo meme — auto-react |
 | `Manage Messages` | Módulo meme — modo solo-media |
 | `Manage Roles` | Meme reward — asignar un rol cuando se alcance la meta. |
+| `Ban Members` | Channel guard — banear a quien escriba en el canal trampa. |
+| `Embed Links` | Channel guard — publicar y actualizar el panel del canal trampa. |
+| `Read Message History` | Channel guard — encontrar el panel existente para editarlo en vez de duplicarlo. |
 | `applications.commands` | Registro de slash commands |
 
 > [!WARNING]

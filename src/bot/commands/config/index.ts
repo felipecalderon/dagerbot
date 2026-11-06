@@ -7,6 +7,7 @@ import {
 import type { ConfigPermission } from "../../../config/env.js";
 import { VALID_CONFIG_PERMISSIONS } from "../../../config/env.js";
 import type { BotCommand, SettingsManager } from "../../../core/types.js";
+import type { ChannelGuardRepository } from "../../../data/types.js";
 import { showSubcommand } from "./subcommands/show.js";
 import { memeSubcommand } from "./subcommands/meme.js";
 import { memeRewardSubcommand } from "./subcommands/memeReward.js";
@@ -35,7 +36,10 @@ function resolveConfigPermission(): ConfigPermission {
   return "Administrator";
 }
 
-export function createConfigCommand(settingsManager: SettingsManager): BotCommand {
+export function createConfigCommand(
+  settingsManager: SettingsManager,
+  channelGuardRepository: ChannelGuardRepository
+): BotCommand {
   const builder = new SlashCommandBuilder()
     .setName("config")
     .setDescription("Manage bot settings")
@@ -48,7 +52,7 @@ export function createConfigCommand(settingsManager: SettingsManager): BotComman
   showSubcommand(builder, subcommands);
   memeSubcommand(builder, subcommands);
   memeRewardSubcommand(builder, subcommands);
-  channelGuardSubcommand(builder, subcommands);
+  channelGuardSubcommand(builder, subcommands, channelGuardRepository);
 
   return {
     name: "config",

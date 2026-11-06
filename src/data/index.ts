@@ -5,16 +5,23 @@
 //
 // See docs/extensibility-en.md for the provider strategy.
 
-import type { SettingsRepository, MemeRepository, SessionRepository } from "./types.js";
+import type {
+  SettingsRepository,
+  MemeRepository,
+  SessionRepository,
+  ChannelGuardRepository,
+} from "./types.js";
 import { createMongoProvider } from "./providers/mongo.js";
 import { createSettingsRepository } from "./repositories/mongoSettingsRepository.js";
 import { createMemeRepository } from "./repositories/mongoMemeRepository.js";
 import { createSessionRepository } from "./repositories/mongoSessionRepository.js";
+import { createChannelGuardRepository } from "./repositories/mongoChannelGuardRepository.js";
 
 export type DataLayer = {
   settingsRepository: SettingsRepository;
   memeRepository: MemeRepository;
   sessionRepository: SessionRepository;
+  channelGuardRepository: ChannelGuardRepository;
   // newRepository: NewRepository; <- next feature
 };
 
@@ -27,6 +34,7 @@ export async function createDataLayer(): Promise<DataLayer> {
     settingsRepository: createSettingsRepository(provider),
     memeRepository: createMemeRepository(provider),
     sessionRepository: createSessionRepository(provider),
+    channelGuardRepository: createChannelGuardRepository(provider),
     // newRepository: createNewRepository(provider), <- next feature
   };
 }
