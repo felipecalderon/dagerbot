@@ -5,6 +5,7 @@ import type { ChatService } from "../../services/chatService.js";
 import { handleMeme, handleMemeReward } from "./listeners/memeListener.js";
 import { handleChatAi } from "./listeners/chatAiListener.js";
 import { handleChannelGuard } from "./listeners/channelGuardListener.js";
+import { syncCucumberPanel } from "./listeners/channelGuardPanel.js";
 
 export function registerEventDispatcher(
   client: Client,
@@ -23,7 +24,11 @@ export function registerEventDispatcher(
     if (message.guildId) {
       const settings = await settingsManager.getSettings(message.guildId);
 
-      await handleChannelGuard(message, settings.channelGuard).catch((err) => {
+      await handleChannelGuard(
+        message,
+        settings.channelGuard,
+        dataLayer.channelGuardRepository
+      ).catch((err) => {
         console.error("[channelGuardFeature] Error:", err);
       });
 
@@ -44,6 +49,31 @@ export function registerEventDispatcher(
     // await handle<NameFeature>(message, deps).catch((err) => {
     //   console.error("[<name>Feature] Error:", err);
     // });
+  });
+
+  // Re-post panels missing after an upgrade, and refresh surviving ones on boot.
+  client.once(Events.ClientReady, async () => {
+    for (const guild of client.guilds.cache.values()) {
+      try {
+        const settings = await settingsManager.getSettings(guild.id);
+        const { enabled, channelId } = settings.channelGuard;
+        if (!enabled || !channelId) continue;
+
+        const channel = await guild.channels.fetch(channelId).catch(() => null);
+        if (!channel?.isTextBased() || !channel.isSendable()) continue;
+
+        await syncCucumberPanel(
+          channel,
+          guild.id,
+          dataLayer.channelGuardRepository
+        );
+      } catch (err) {
+        console.error(
+          `[channelGuardFeature] Failed to sync panel for guild ${guild.id}:`,
+          err
+        );
+      }
+    }
   });
 
   // --- Other events

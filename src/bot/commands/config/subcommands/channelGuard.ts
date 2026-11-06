@@ -5,6 +5,8 @@ import {
   type SlashCommandBuilder,
 } from "discord.js";
 import type { SettingsManager } from "../../../../core/types.js";
+import type { ChannelGuardRepository } from "../../../../data/types.js";
+import { syncCucumberPanel } from "../../../events/listeners/channelGuardPanel.js";
 
 type SubcommandMap = Map<
   string,
@@ -13,7 +15,8 @@ type SubcommandMap = Map<
 
 export function channelGuardSubcommand(
   builder: SlashCommandBuilder,
-  handlers: SubcommandMap
+  handlers: SubcommandMap,
+  channelGuardRepository: ChannelGuardRepository
 ): void {
   builder.addSubcommand((sub) =>
     sub
@@ -67,6 +70,7 @@ export function channelGuardSubcommand(
 
   handlers.set("channel-guard", async (interaction, settingsManager) => {
     if (!interaction.guildId) return;
+    const guildId = interaction.guildId;
 
     const channel = interaction.options.getChannel("channel");
     const statusStr = interaction.options.getString("status");
@@ -79,7 +83,8 @@ export function channelGuardSubcommand(
     const removeRole = interaction.options.getRole("remove-ignored-role");
     const rawRolesStr = interaction.options.getString("ignored-roles");
 
-    const current = await settingsManager.getSettings(interaction.guildId);
+    const current = await settingsManager.getSettings(guildId);
+    const previousChannelId = current.channelGuard.channelId;
     let updatedGuard = { ...current.channelGuard };
     let hasChanges = false;
     const changes: string[] = [];
@@ -147,10 +152,49 @@ export function channelGuardSubcommand(
     }
 
     if (hasChanges) {
-      await settingsManager.saveSettings(interaction.guildId, {
+      await settingsManager.saveSettings(guildId, {
         ...current,
         channelGuard: updatedGuard,
       });
+
+      const guild = interaction.guild;
+      if (guild) {
+        try {
+          const previousPanelId = (await channelGuardRepository.get(guildId))
+            ?.panelMessageId;
+
+          // Drop the old sign when the guard moves or turns off. Stats stay in
+          // the database, so re-enabling restores the counter.
+          if (previousPanelId && (previousChannelId !== updatedGuard.channelId || !updatedGuard.enabled)) {
+            const oldChannel = previousChannelId
+              ? await guild.channels.fetch(previousChannelId).catch(() => null)
+              : null;
+            if (oldChannel?.isTextBased() && oldChannel.isSendable()) {
+              await oldChannel.messages
+                .fetch(previousPanelId)
+                .then((message) => message.delete())
+                .catch(() => undefined);
+            }
+            await channelGuardRepository.savePanelMessageId(guildId, "");
+          }
+
+          if (updatedGuard.enabled && updatedGuard.channelId) {
+            const target = await guild.channels
+              .fetch(updatedGuard.channelId)
+              .catch(() => null);
+            if (!target?.isTextBased() || !target.isSendable()) {
+              changes.push("⚠️ Panel not posted: the channel could not be accessed.");
+            } else {
+              await syncCucumberPanel(target, guildId, channelGuardRepository);
+            }
+          }
+        } catch (err) {
+          console.error("[channelGuard] Failed to sync panel:", err);
+          changes.push(
+            "⚠️ Settings saved, but the panel could not be updated. Check the bot's channel permissions."
+          );
+        }
+      }
     }
 
     await interaction.reply({

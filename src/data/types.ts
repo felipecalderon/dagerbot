@@ -30,6 +30,26 @@ export type MemeRepository = {
   getTotalUsers: (guildId: string) => Promise<number>;
 };
 
+// The name is snapshotted because a banned member can no longer be resolved.
+export type ChannelGuardRecord = {
+  guildId: string;
+  panelMessageId: string;
+  lastCucumberEaterName: string;
+  lastCucumberEaterAt: number;
+  banCount: number;
+};
+
+export type ChannelGuardRepository = {
+  get: (guildId: string) => Promise<ChannelGuardRecord | null>;
+  recordCatch: (
+    guildId: string,
+    userName: string,
+    at: number
+  ) => Promise<void>;
+  // An empty messageId means the guild has no panel posted.
+  savePanelMessageId: (guildId: string, messageId: string) => Promise<void>;
+};
+
 // Not persisted forever: the policy caps how much history is kept and for how
 // long, the same way limit/offset shape a MemeRepository query. The caller
 // decides the policy per call, same as any other repository — a session

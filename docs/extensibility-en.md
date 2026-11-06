@@ -101,6 +101,7 @@ Current listeners:
 |---|---|---|
 | `src/bot/events/listeners/memeListener.ts` | `MessageCreate` | Meme module + reward |
 | `src/bot/events/listeners/chatAiListener.ts` | `MessageCreate` | AI chat |
+| `src/bot/events/listeners/channelGuardListener.ts` | `MessageCreate` | Anti-spam trap channel + panel |
 
 **Adding a feature to an existing event:**
 
@@ -270,6 +271,9 @@ the entry point never names a concrete implementation.
 | `Add Reactions` | Meme module — auto-react |
 | `Manage Messages` | Meme module — media-only mode |
 | `Manage Roles` | Meme reward — assign role when goal is reached |
+| `Ban Members` | Channel guard — ban anyone who writes in the trap channel |
+| `Embed Links` | Channel guard — post and update the trap-channel panel |
+| `Read Message History` | Channel guard — find the existing panel to edit instead of duplicating it |
 | `applications.commands` | Slash command registration |
 
 > [!WARNING]

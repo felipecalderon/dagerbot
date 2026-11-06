@@ -59,6 +59,9 @@ Al invitar el bot, asegurarse de incluir los siguientes permisos y scopes:
 - `Add Reactions`
 - `Manage Messages`
 - `Manage Roles`
+- `Ban Members`
+- `Embed Links`
+- `Read Message History`
 
 > [!WARNING]
 > Si se agrega una característica nueva que requiera permisos adicionales:
