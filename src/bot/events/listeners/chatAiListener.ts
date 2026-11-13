@@ -1,5 +1,6 @@
 import type { Client, Message } from "discord.js";
 import type { ChatService } from "../../../services/chatService.js";
+import { HttpError } from "../../../http/httpError.js";
 
 export async function handleChatAi(
   message: Message,
@@ -83,8 +84,14 @@ export async function handleChatAi(
       allowedMentions: { parse: [], repliedUser: true },
     });
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Unexpected error.";
-    await message.reply(`error: ${errorMessage}`);
+    // Only the errors this project authors are safe to show. Anything else —
+    // an OpenAI SDK failure above all — carries quota, billing and endpoint
+    // detail that has no business in a public channel.
+    if (err instanceof HttpError) {
+      await message.reply(`error: ${err.message}`);
+      return;
+    }
+    console.error("[chatAi] unexpected error:", err);
+    await message.reply("error: something broke on my side. Try again in a moment.");
   }
 }
