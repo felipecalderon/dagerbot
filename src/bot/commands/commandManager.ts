@@ -1,4 +1,5 @@
 import {
+  MessageFlags,
   REST,
   Routes,
   type ChatInputCommandInteraction,
@@ -35,7 +36,23 @@ export function createCommandManager(deps: {
     route: async (interaction) => {
       const command = commands.get(interaction.commandName);
       if (!command) return;
-      await command.handle(interaction);
+
+      try {
+        await command.handle(interaction);
+      } catch (err) {
+        console.error(`[commands] /${interaction.commandName} failed:`, err);
+
+        // Fixed text: a dependency's message should not reach Discord. And past
+        // Discord's three seconds even answering fails, which must not throw.
+        const notice = {
+          content: "⚠️ That command could not be completed. Try again in a moment.",
+          flags: MessageFlags.Ephemeral,
+        } as const;
+        await (interaction.replied || interaction.deferred
+          ? interaction.followUp(notice)
+          : interaction.reply(notice)
+        ).catch(() => null);
+      }
     },
 
     registerToDiscord: async (clientId, token, guildId) => {
