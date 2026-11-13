@@ -76,7 +76,12 @@ export async function handleChatAi(
       text: formattedText,
       ip: `discord:${message.author.id}`,
     });
-    await message.reply(result.reply);
+    // The model writes this text and a user can steer what it says, so no
+    // mention in it is allowed to fire. repliedUser keeps the reply ping.
+    await message.reply({
+      content: result.reply,
+      allowedMentions: { parse: [], repliedUser: true },
+    });
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Unexpected error.";
