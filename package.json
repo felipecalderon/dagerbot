@@ -16,6 +16,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.13"
+  },
   "dependencies": {
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.2",
