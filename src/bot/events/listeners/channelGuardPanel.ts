@@ -1,8 +1,8 @@
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
+  ComponentType,
+  MessageFlags,
+  type MessageCreateOptions,
   type TextBasedChannel,
 } from "discord.js";
 import type { ChannelGuardRecord, ChannelGuardRepository } from "../../../data/types.js";
@@ -12,41 +12,64 @@ const THUMBNAIL_URL = "https://media.discordapp.net/attachments/3994550209004175
 
 const UNKNOWN_MESSAGE = 10008;
 
+type PanelPayload = {
+  flags: MessageFlags.IsComponentsV2;
+  components: NonNullable<MessageCreateOptions["components"]>;
+};
+
 const panelSyncs = new Map<string, Promise<void>>();
 
-export function buildCucumberPanelPayload(record: ChannelGuardRecord | null) {
+export function buildCucumberPanelPayload(
+  record: ChannelGuardRecord | null
+): PanelPayload {
   const cucumberEater =
     record && record.lastCucumberEaterAt > 0
       ? { name: record.lastCucumberEaterName, caughtAt: record.lastCucumberEaterAt }
       : null;
 
-  const embed = new EmbedBuilder()
-    .setColor(0x2b2d31)
-    .setTitle("NO MANDES MENSAJE EN ESTE CANAL")
-    .setDescription(
-      [
-        "Este canal es para gente que quiera pepinos.",
-        "Todo aquel que envíe mensaje en este canal será baneado automaticamente y metido un pepino por el oscuro.",
-        "",
-        "**Último en recibir un pepinazo:**",
-        formatMostRecentCucumberEater(cucumberEater),
-      ].join("\n")
-    );
-
-  if (THUMBNAIL_URL) {
-    embed.setThumbnail(THUMBNAIL_URL);
-  }
-
-  const banCounter = new ButtonBuilder()
-    .setCustomId("channel-guard-bans")
-    .setLabel(`Pepinazos: ${record?.banCount ?? 0}`)
-    .setEmoji("🥒")
-    .setStyle(ButtonStyle.Secondary)
-    .setDisabled(true);
-
   return {
-    embeds: [embed],
-    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(banCounter)],
+    flags: MessageFlags.IsComponentsV2,
+    components: [
+      {
+        type: ComponentType.Container,
+        components: [
+          {
+            type: ComponentType.Section,
+            components: [
+              {
+                type: ComponentType.TextDisplay,
+                content: [
+                  "## NO MANDES MENSAJE EN ESTE CANAL",
+                  "",
+                  "Este canal es para gente que quiera pepinos.",
+                  "Todo aquel que envíe mensaje en este canal será baneado automaticamente y metido un pepino por el oscuro.",
+                  "",
+                  "**Último en recibir un pepinazo:**",
+                  formatMostRecentCucumberEater(cucumberEater),
+                ].join("\n"),
+              },
+            ],
+            accessory: {
+              type: ComponentType.Thumbnail,
+              media: { url: THUMBNAIL_URL },
+            },
+          },
+          {
+            type: ComponentType.ActionRow,
+            components: [
+              {
+                type: ComponentType.Button,
+                style: ButtonStyle.Secondary,
+                customId: "channel-guard-bans",
+                label: `Pepinazos: ${record?.banCount ?? 0}`,
+                emoji: { name: "🥒" },
+                disabled: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -63,8 +86,12 @@ async function syncPanelNow(
   if (record?.panelMessageId) {
     try {
       const existing = await channel.messages.fetch(record.panelMessageId);
-      await existing.edit(payload);
-      return;
+      if (existing.flags.has(MessageFlags.IsComponentsV2)) {
+        await existing.edit(payload);
+        return;
+      }
+      // A classic embed cannot hold a button inside it, so replace it once.
+      await existing.delete();
     } catch (error) {
       // Only a deleted panel gets replaced; other errors are real failures.
       if ((error as { code?: number }).code !== UNKNOWN_MESSAGE) throw error;
