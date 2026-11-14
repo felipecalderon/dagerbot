@@ -95,13 +95,7 @@ Infrastructure events (`ClientReady`, `Error`, `InteractionCreate`) stay in `dis
 
 **Rule: never register a new `client.on()` with business logic outside `eventDispatcher.ts`.**
 
-Current listeners:
-
-| File | Event | Feature |
-|---|---|---|
-| `src/bot/events/listeners/memeListener.ts` | `MessageCreate` | Meme module + reward |
-| `src/bot/events/listeners/chatAiListener.ts` | `MessageCreate` | AI chat |
-| `src/bot/events/listeners/channelGuardListener.ts` | `MessageCreate` | Anti-spam trap channel + panel |
+Because of that rule, the active listeners are exactly the ones `eventDispatcher.ts` calls: that file is the index, and it cannot fall out of date.
 
 **Adding a feature to an existing event:**
 

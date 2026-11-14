@@ -33,6 +33,7 @@ Backend en TypeScript con Fastify para chatbot de discord en el antro usando Ope
 - `/config show` — muestra el estado de todos los módulos.
 - `/config meme` — configura el módulo de memes (canal, reacciones, modo solo-media, random-react).
 - `/config meme-reward` — configura la recompensa por acumulación de memes (rol, meta, mensaje).
+- `/config channel-guard` — canal trampa contra spam: **todo el que escriba ahí es baneado**. Configura el canal, los roles exentos y cuántos segundos de su historial se borran. El equipo de moderación queda exento por permisos.
 - `/rank meme` — muestra el top de usuarios con más memes publicados, navegable por páginas.
 
 Variables de entorno:
