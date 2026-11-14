@@ -17,6 +17,7 @@ export function registerEventDispatcher(
   }
 ): void {
   const { settingsManager, dataLayer, chatService, prefix } = deps;
+  const aiChatEnabled = process.env.DISCORD_AI_CHAT_ENABLED !== "false";
 
   client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
@@ -41,9 +42,11 @@ export function registerEventDispatcher(
       });
     }
 
-    await handleChatAi(message, client, chatService, prefix).catch((err) => {
-      console.error("[chatAiFeature] Error:", err);
-    });
+    if (aiChatEnabled) {
+      await handleChatAi(message, client, chatService, prefix).catch((err) => {
+        console.error("[chatAiFeature] Error:", err);
+      });
+    }
 
     // next event handler
     // await handle<NameFeature>(message, deps).catch((err) => {
