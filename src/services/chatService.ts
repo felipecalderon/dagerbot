@@ -28,6 +28,13 @@ export function createChatService(params: {
 
   return {
     async sendMessage({ sessionId, text, ip }) {
+      if (text.length > config.maxInputChars) {
+        throw new HttpError(
+          413,
+          "input_too_large",
+          `Vamo a calmarno' mascapito solo te voy a decir 2 cosas: mucho texto (Max ${config.maxInputChars} chars)`,
+        );
+      }
       if (!allowIp(ip)) {
         throw new HttpError(429, "rate_limited", "IP rate limit exceeded.");
       }
