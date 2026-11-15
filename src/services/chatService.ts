@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { AppConfig } from "../config/env";
 import { SessionRepository, SessionPolicy } from "../data/types";
 import { HttpError } from "../http/httpError";
-import { DEFAULT_SYSTEM_PROMPT } from "../config/systemPrompt";
 
 export type ChatService = {
   sendMessage(params: {
@@ -43,7 +42,7 @@ export function createChatService(params: {
       await sessionRepository.append(sessionId, { role: "user", content: text }, policy);
 
       const messages = [
-        { role: "system", content: DEFAULT_SYSTEM_PROMPT },
+        { role: "system", content: config.openAiSystemPrompt },
       ].concat(history, [{ role: "user", content: text }]);
 
       const completion = await openai.chat.completions.create({
