@@ -94,20 +94,28 @@ const handler: SubcommandHandler = async (interaction, memeRepository) => {
     time: COLLECTOR_TIMEOUT_MS,
   });
 
+  // A collector callback is an async listener like any other: a rejection here
+  // has nowhere to go and takes the process down. Turning a page must not.
   collector.on("collect", async (btn) => {
-    await btn.deferUpdate();
+    try {
+      await btn.deferUpdate();
 
-    const newPage = btn.customId === "rank_next" ? page + 1 : page - 1;
+      const newPage = btn.customId === "rank_next" ? page + 1 : page - 1;
 
-    if (newPage < 1 || newPage > totalPages) return;
+      if (newPage < 1 || newPage > totalPages) return;
 
-    page = newPage;
-    const pageEntries = await fetchPage(memeRepository, guildId, page);
+      // Advanced only once the page is in hand, so a failed read leaves the
+      // counter agreeing with the message still on screen.
+      const pageEntries = await fetchPage(memeRepository, guildId, newPage);
+      page = newPage;
 
-    await btn.editReply({
-      embeds: [buildEmbed(formatRankPage(pageEntries, page, totalPages))],
-      components: [buildRow(page, totalPages)],
-    });
+      await btn.editReply({
+        embeds: [buildEmbed(formatRankPage(pageEntries, page, totalPages))],
+        components: [buildRow(page, totalPages)],
+      });
+    } catch (err) {
+      console.error(`[rank] guild=${guildId}: could not turn the page:`, err);
+    }
   });
 
   collector.on("end", async () => {
