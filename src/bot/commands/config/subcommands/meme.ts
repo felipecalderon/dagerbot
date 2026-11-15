@@ -8,6 +8,7 @@ import {
 import type { AppSettings, SettingsManager } from "../../../../core/types.js";
 import {
   MAX_REACT_EMOJIS,
+  formatMemeSettings,
   getRequiredPermissionChecks,
 } from "../../../../features/meme.js";
 
@@ -143,11 +144,7 @@ async function handleMeme(
     await interaction.reply({
       content: [
         "**Meme Module Settings**",
-        `  • channel: ${meme.channelId ? `<#${meme.channelId}>` : "not set"}`,
-        `  • auto-react: ${meme.autoReact.enabled ? "✅ on" : "❌ off"}`,
-        `  • random-react: ${meme.autoReact.random ? "✅ on" : "❌ off"}`,
-        `  • emojis: ${meme.autoReact.emojis.join(" ")}`,
-        `  • media-only: ${meme.mediaOnly.enabled ? "✅ on" : "❌ off"}`,
+        ...formatMemeSettings(meme),
       ].join("\n"),
       flags: MessageFlags.Ephemeral,
     });

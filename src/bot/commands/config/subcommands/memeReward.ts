@@ -5,6 +5,7 @@ import {
   type SlashCommandBuilder,
 } from "discord.js";
 import type { AppSettings, SettingsManager } from "../../../../core/types.js";
+import { formatMemeRewardSettings } from "../../../../features/meme.js";
 
 type SubcommandMap = Map<
   string,
@@ -106,10 +107,7 @@ async function handleMemeReward(
     await interaction.reply({
       content: [
         "**Meme Reward Settings**",
-        `  • enabled: ${memeReward.enabled ? "✅ on" : "❌ off"}`,
-        `  • role: ${memeReward.roleId ? `<@&${memeReward.roleId}>` : "not set"}`,
-        `  • goal: ${memeReward.goal} memes`,
-        `  • message: ${memeReward.message}`,
+        ...formatMemeRewardSettings(memeReward),
       ].join("\n"),
       flags: MessageFlags.Ephemeral,
     });

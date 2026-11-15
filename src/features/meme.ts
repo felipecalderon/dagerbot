@@ -1,3 +1,5 @@
+import type { MemeSettings, MemeRewardSettings } from "../core/types.js";
+
 const MEDIA_MIME_PREFIXES = ["image/", "video/"] as const;
 
 export const MAX_REACT_EMOJIS = 5;
@@ -75,4 +77,25 @@ export function formatRankPage(
     return `\`${pos}.\` <@${e.userId}> — ${e.count}`;
   });
   return lines.join("\n") + `\n\nPage ${page}/${totalPages}`;
+}
+
+// The heading stays with the caller: /config meme titles a standalone reply,
+// /config show titles a section inside a list.
+export function formatMemeSettings(settings: MemeSettings): string[] {
+  return [
+    `  • channel: ${settings.channelId ? `<#${settings.channelId}>` : "not set"}`,
+    `  • auto-react: ${settings.autoReact.enabled ? "✅ on" : "❌ off"}`,
+    `  • random-react: ${settings.autoReact.random ? "✅ on" : "❌ off"}`,
+    `  • emojis: ${settings.autoReact.emojis.join(" ")}`,
+    `  • media-only: ${settings.mediaOnly.enabled ? "✅ on" : "❌ off"}`,
+  ];
+}
+
+export function formatMemeRewardSettings(settings: MemeRewardSettings): string[] {
+  return [
+    `  • enabled: ${settings.enabled ? "✅ on" : "❌ off"}`,
+    `  • role: ${settings.roleId ? `<@&${settings.roleId}>` : "not set"}`,
+    `  • goal: ${settings.goal} memes`,
+    `  • message: ${settings.message || "not set"}`,
+  ];
 }
