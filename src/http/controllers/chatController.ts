@@ -28,7 +28,7 @@ export function createChatController(params: {
   config: AppConfig;
   chatService: ChatService;
 }) {
-  const { config, chatService } = params;
+  const { chatService } = params;
 
   function sendText(reply: FastifyReply, status: number, text: string) {
     reply.status(status).type("text/plain").send(text);
@@ -48,14 +48,6 @@ export function createChatController(params: {
 
       if (!query.text.trim()) {
         sendText(reply, 400, "invalid_input: Boludín, no enviaste nada, no jodás");
-        return;
-      }
-      if (query.text.length > config.maxInputChars) {
-        sendText(
-          reply,
-          413,
-          `input_too_large: Vamo a calmarno' mascapito solo te voy a decir 2 cosas: mucho texto (Max ${config.maxInputChars} chars)`
-        );
         return;
       }
 
