@@ -71,3 +71,42 @@ export function formatMostRecentCucumberEater(eater: CucumberEater | null): stri
   const seconds = Math.floor(eater.caughtAt / 1000);
   return `\`${sanitizeCucumberEaterName(eater.name)}\` <t:${seconds}:R>`;
 }
+
+export function formatLastChannelClear(
+  at: number | undefined,
+  count: number | undefined
+): string {
+  if (!at) return "Todavía no.";
+  const messages = count === 1 ? "1 mensaje" : `${count ?? 0} mensajes`;
+  return `<t:${Math.floor(at / 1000)}:R> (${messages})`;
+}
+
+// Note: Discord bulk-deletes only messages under 14 days old.
+// shortcut: older messages go one by one, revisit if the bot stays offline for weeks.
+export const BULK_DELETE_MAX_AGE_MS = 13 * 24 * 60 * 60 * 1000;
+
+type ClearableMessage = {
+  id: string;
+  createdTimestamp: number;
+  pinned: boolean;
+  author: { bot: boolean };
+};
+
+// Note: skips the panel, pinned messages and bot posts; splits the rest by the
+// 14-day bulk-delete limit.
+export function bulkDeleteTargets<T extends ClearableMessage>(
+  messages: Iterable<T>,
+  panelMessageId: string,
+  now: number
+): { bulk: T[]; single: T[] } {
+  const bulk: T[] = [];
+  const single: T[] = [];
+
+  for (const message of messages) {
+    if (message.id === panelMessageId || message.pinned || message.author.bot) continue;
+    if (now - message.createdTimestamp < BULK_DELETE_MAX_AGE_MS) bulk.push(message);
+    else single.push(message);
+  }
+
+  return { bulk, single };
+}

@@ -37,6 +37,9 @@ export type ChannelGuardRecord = {
   lastCucumberEaterName: string;
   lastCucumberEaterAt: number;
   banCount: number;
+  // Note: 0 means never cleared; pre-existing rows read as undefined.
+  lastChannelClearedAt: number;
+  lastChannelClearedCount: number;
 };
 
 export type ChannelGuardRepository = {
@@ -48,6 +51,11 @@ export type ChannelGuardRepository = {
   ) => Promise<void>;
   // An empty messageId means the guild has no panel posted.
   savePanelMessageId: (guildId: string, messageId: string) => Promise<void>;
+  markChannelCleared: (
+    guildId: string,
+    at: number,
+    count: number
+  ) => Promise<void>;
 };
 
 // Not persisted forever: the policy caps how much history is kept and for how

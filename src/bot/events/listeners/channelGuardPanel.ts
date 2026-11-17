@@ -6,7 +6,10 @@ import {
   type TextBasedChannel,
 } from "discord.js";
 import type { ChannelGuardRecord, ChannelGuardRepository } from "../../../data/types.js";
-import { formatMostRecentCucumberEater } from "../../../features/channelGuard.js";
+import {
+  formatLastChannelClear,
+  formatMostRecentCucumberEater,
+} from "../../../features/channelGuard.js";
 
 const THUMBNAIL_URL = "https://media.discordapp.net/attachments/399455020900417546/1568383332113195008/zd50j5b.png?ex=6aef9e4d&is=6aee4ccd&hm=edbe59ec44526025ec62e722b2e7f905609e38938e9e66cc69a4515df5d7c737&=&format=webp&quality=lossless";
 
@@ -42,10 +45,16 @@ export function buildCucumberPanelPayload(
                   "## NO MANDES MENSAJE EN ESTE CANAL",
                   "",
                   "Este canal es para gente que quiera pepinos.",
+                  "Los roles exentos pueden escribir acá; sus mensajes se borran solos a las 24 horas.",
                   "Todo aquel que envíe mensaje en este canal será baneado automaticamente y metido un pepino por el oscuro.",
-                  "",
+                  "Excepto las honradas personas que ya tienen un pepino en el ojete",
                   "**Último en recibir un pepinazo:**",
                   formatMostRecentCucumberEater(cucumberEater),
+                  "**Reset mensajes de personas con pepino en el culo:** " +
+                    formatLastChannelClear(
+                      record?.lastChannelClearedAt,
+                      record?.lastChannelClearedCount
+                    ),
                 ].join("\n"),
               },
             ],

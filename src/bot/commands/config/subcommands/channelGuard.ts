@@ -39,6 +39,9 @@ async function validateChannelGuardPermissions(
     if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.ManageMessages)) {
       errors.push("❌ The bot cannot delete messages in the trap channel.");
     }
+    if (!botMember.permissionsIn(channelId).has(PermissionFlagsBits.ReadMessageHistory)) {
+      errors.push("❌ The bot cannot read the trap channel's history, so it cannot clear old messages.");
+    }
   }
 
   return errors.length > 0 ? errors.join("\n") : null;
@@ -52,11 +55,11 @@ export function channelGuardSubcommand(
   builder.addSubcommand((sub) =>
     sub
       .setName("channel-guard")
-      .setDescription("Trap channel — everyone who posts there is banned")
+      .setDescription("Exempt roles chat here; everyone else who posts is banned")
       .addChannelOption((opt) =>
         opt
           .setName("channel")
-          .setDescription("Trap channel: must be unused, everyone who posts there is banned")
+          .setDescription("Channel to watch: exempt roles may chat, everyone else is banned")
           .setRequired(false)
           .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
       )
@@ -197,7 +200,7 @@ export function channelGuardSubcommand(
     if (!hasChanges && changes.length === 0) {
       await interaction.reply({
         content: [
-          "🛡️ **channel-guard** — trap channel: everyone who posts there is banned",
+          "🛡️ **channel-guard** — exempt roles chat here; everyone else who posts is banned",
           ...formatChannelGuardSettings(updatedGuard),
         ].join("\n"),
         flags: MessageFlags.Ephemeral,
