@@ -4,6 +4,9 @@ const MEDIA_MIME_PREFIXES = ["image/", "video/"] as const;
 
 export const MAX_REACT_EMOJIS = 5;
 
+export const DEFAULT_REWARD_MESSAGE =
+  "🎉 Congratulations {user}! You’ve reached the goal and earned the {role} role.";
+
 /**
  * Returns true if at least one attachment is an image or video.
  * Receives raw MIME types so this function stays pure and testable.
@@ -51,12 +54,25 @@ export function hasReachedGoal(count: number, goal: number): boolean {
   return goal > 0 && count >= goal;
 }
 
+/**
+ * Resolves the announcement template, falling back to the default when the
+ * stored value cannot produce one. Discord refuses an empty send, and by then
+ * the role has already been granted.
+ * Receives the raw stored value so this function stays pure and testable.
+ */
+export function resolveRewardMessage(configured: unknown): string {
+  if (typeof configured !== "string" || !configured.trim()) {
+    return DEFAULT_REWARD_MESSAGE;
+  }
+  return configured;
+}
+
 export function buildRewardMessage(
-  template: string,
+  template: unknown,
   userMention: string,
   roleMention: string
 ): string {
-  return template
+  return resolveRewardMessage(template)
     .replace("{user}", userMention)
     .replace("{role}", roleMention);
 }
@@ -96,6 +112,6 @@ export function formatMemeRewardSettings(settings: MemeRewardSettings): string[]
     `  • enabled: ${settings.enabled ? "✅ on" : "❌ off"}`,
     `  • role: ${settings.roleId ? `<@&${settings.roleId}>` : "not set"}`,
     `  • goal: ${settings.goal} memes`,
-    `  • message: ${settings.message || "not set"}`,
+    `  • message: ${resolveRewardMessage(settings.message)}`,
   ];
 }
