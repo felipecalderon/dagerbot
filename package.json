@@ -10,7 +10,7 @@
     "migrate:chats": "tsx src/scripts/migrateChatsToMongo.ts",
     "commands:clear": "tsx src/scripts/clearCommands.ts",
     "start": "node dist/main.js",
-    "test": "tsx src/scripts/checkChannelGuardCleanup.ts"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
