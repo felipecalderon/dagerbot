@@ -263,11 +263,11 @@ the entry point never names a concrete implementation.
 |---|---|
 | `Send Messages` | AI chat responses |
 | `Add Reactions` | Meme module — auto-react |
-| `Manage Messages` | Meme module — media-only mode |
+| `Manage Messages` | Meme module — media-only mode; channel guard — delete stale messages |
 | `Manage Roles` | Meme reward — assign role when goal is reached |
 | `Ban Members` | Channel guard — ban anyone who writes in the trap channel |
 | `Embed Links` | Channel guard — post and update the trap-channel panel |
-| `Read Message History` | Channel guard — find the existing panel to edit instead of duplicating it |
+| `Read Message History` | Channel guard — find the existing panel to edit instead of duplicating it; scan history for messages older than 24h |
 | `applications.commands` | Slash command registration |
 
 > [!WARNING]

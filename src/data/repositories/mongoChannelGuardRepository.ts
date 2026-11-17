@@ -13,6 +13,8 @@ const channelGuardSchema = new Schema<ChannelGuardRecord>(
     lastCucumberEaterName: { type: String, required: true, default: "" },
     lastCucumberEaterAt: { type: Number, required: true, default: 0 },
     banCount: { type: Number, required: true, default: 0 },
+    lastChannelClearedAt: { type: Number, required: true, default: 0 },
+    lastChannelClearedCount: { type: Number, required: true, default: 0 },
   },
   {
     collection: COLLECTION,
@@ -38,6 +40,10 @@ const validator = {
       lastCucumberEaterName: { bsonType: "string" },
       lastCucumberEaterAt: { bsonType: ["int", "long", "double"], minimum: 0 },
       banCount: { bsonType: ["int", "long", "double"], minimum: 0 },
+      // Note: older rows lack these fields, so they stay out of required;
+      // validationLevel "strict" would reject their updates. Missing reads as 0.
+      lastChannelClearedAt: { bsonType: ["int", "long", "double"], minimum: 0 },
+      lastChannelClearedCount: { bsonType: ["int", "long", "double"], minimum: 0 },
     },
   },
 };
@@ -91,7 +97,11 @@ export function createChannelGuardRepository(
               lastCucumberEaterName: userName,
               lastCucumberEaterAt: at,
             },
-            $setOnInsert: { panelMessageId: "" },
+            $setOnInsert: {
+              panelMessageId: "",
+              lastChannelClearedAt: 0,
+              lastChannelClearedCount: 0,
+            },
           },
           { upsert: true }
         )
@@ -107,6 +117,28 @@ export function createChannelGuardRepository(
             $set: { panelMessageId: messageId },
             // The remaining required fields need values on first insert.
             $setOnInsert: {
+              lastCucumberEaterName: "",
+              lastCucumberEaterAt: 0,
+              banCount: 0,
+              lastChannelClearedAt: 0,
+              lastChannelClearedCount: 0,
+            },
+          },
+          { upsert: true }
+        )
+      );
+    },
+
+    markChannelCleared: async (guildId, at, count) => {
+      await ready();
+      await retryOnDuplicate(() =>
+        ChannelGuardModel.updateOne(
+          { guildId },
+          {
+            $set: { lastChannelClearedAt: at, lastChannelClearedCount: count },
+            // Note: remaining required fields need values on first insert.
+            $setOnInsert: {
+              panelMessageId: "",
               lastCucumberEaterName: "",
               lastCucumberEaterAt: 0,
               banCount: 0,

@@ -5,6 +5,7 @@ import type { ChatService } from "../../services/chatService.js";
 import { handleMeme, handleMemeReward } from "./listeners/memeListener.js";
 import { handleChatAi } from "./listeners/chatAiListener.js";
 import { handleChannelGuard } from "./listeners/channelGuardListener.js";
+import { sweepGuardedChannels } from "./listeners/channelGuardCleanup.js";
 import { syncCucumberPanel } from "./listeners/channelGuardPanel.js";
 
 export function registerEventDispatcher(
@@ -70,6 +71,19 @@ export function registerEventDispatcher(
 
   // Re-post panels missing after an upgrade, and refresh surviving ones on boot.
   client.once(Events.ClientReady, async () => {
+    const sweep = () =>
+      sweepGuardedChannels(
+        client,
+        settingsManager,
+        dataLayer.channelGuardRepository
+      ).catch((err) => {
+        console.error("[channelGuardCleanup] Sweep failed:", err);
+      });
+
+    // Note: registered before the boot sweep so a failed sweep cannot leave the
+    // hourly cleanup unregistered.
+    setInterval(sweep, 60 * 60 * 1000).unref();
+
     for (const guild of client.guilds.cache.values()) {
       try {
         const settings = await settingsManager.getSettings(guild.id);
@@ -91,6 +105,8 @@ export function registerEventDispatcher(
         );
       }
     }
+
+    await sweep();
   });
 
   // --- Other events

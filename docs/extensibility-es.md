@@ -265,11 +265,11 @@ el punto de arranque nunca nombra una implementación concreta.
 |---|---|
 | `Send Messages` | Respuestas del chat con IA |
 | `Add Reactions` | Módulo meme — auto-react |
-| `Manage Messages` | Módulo meme — modo solo-media |
+| `Manage Messages` | Módulo meme — modo solo-media; channel guard — borrar mensajes viejos |
 | `Manage Roles` | Meme reward — asignar un rol cuando se alcance la meta. |
 | `Ban Members` | Channel guard — banear a quien escriba en el canal trampa. |
 | `Embed Links` | Channel guard — publicar y actualizar el panel del canal trampa. |
-| `Read Message History` | Channel guard — encontrar el panel existente para editarlo en vez de duplicarlo. |
+| `Read Message History` | Channel guard — encontrar el panel existente para editarlo en vez de duplicarlo; leer el historial para borrar mensajes de más de 24 h. |
 | `applications.commands` | Registro de slash commands |
 
 > [!WARNING]
