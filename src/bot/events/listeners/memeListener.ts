@@ -20,7 +20,10 @@ export async function handleMeme(
   if (config.autoReact.enabled && hasMedia) {
     const toReact = selectEmojis(config.autoReact.emojis, config.autoReact.random);
     for (const emoji of toReact) {
-      await message.react(emoji);
+      // One emoji Discord refuses must not cancel the ones after it.
+      await message.react(emoji).catch((err) => {
+        console.error(`[memeFeature] could not react with ${emoji}:`, err);
+      });
     }
   }
 

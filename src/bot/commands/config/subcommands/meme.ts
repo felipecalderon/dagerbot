@@ -8,31 +8,16 @@ import {
 import type { AppSettings, SettingsManager } from "../../../../core/types.js";
 import {
   MAX_REACT_EMOJIS,
+  customEmojiId,
   formatMemeSettings,
   getRequiredPermissionChecks,
+  parseEmojis,
 } from "../../../../features/meme.js";
 
 type SubcommandMap = Map<
   string,
   (i: ChatInputCommandInteraction, s: SettingsManager) => Promise<void>
 >;
-
-// Unicode emoji or Discord custom emoji format <:name:id> / <a:name:id>
-const EMOJI_REGEX =
-  /^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|<a?:\w+:\d+>)$/u;
-
-function isValidEmoji(value: string): boolean {
-  return EMOJI_REGEX.test(value.trim());
-}
-
-function parseEmojis(raw: string): string[] {
-  // Handles both space-separated and consecutive emojis from Discord's picker
-  return (
-    raw.trim().match(
-      /\p{Emoji_Presentation}|\p{Extended_Pictographic}|<a?:\w+:\d+>/gu
-    ) ?? []
-  );
-}
 
 export function memeSubcommand(
   builder: SlashCommandBuilder,
@@ -171,10 +156,14 @@ async function handleMeme(
       return;
     }
 
-    const invalidEmojis = emojis.filter((e) => !isValidEmoji(e));
-    if (invalidEmojis.length > 0) {
+    // The bot can only react with custom emojis of the server it is reacting in.
+    const foreign = emojis.filter((e) => {
+      const id = customEmojiId(e);
+      return id !== null && !interaction.guild?.emojis.cache.has(id);
+    });
+    if (foreign.length > 0) {
       await interaction.reply({
-        content: `❌ Invalid emoji(s): ${invalidEmojis.join(" ")}. Use unicode emojis or server custom emojis only.`,
+        content: `❌ Not from this server: ${foreign.join(" ")}. Custom emojis must belong to this server.`,
         flags: MessageFlags.Ephemeral,
       });
       return;
