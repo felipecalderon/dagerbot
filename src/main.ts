@@ -2,7 +2,7 @@ import { buildApp } from "./app";
 import { loadConfig } from "./config/env";
 import { createFixedWindowLimiter } from "./core/rateLimit";
 import { createOpenAIClient } from "./infra/openaiClient";
-import { createChatService } from "./services/chatService";
+import { createChatService } from "./features/chat";
 import { startDiscordBot } from "./bot/discordBot";
 import { createDataLayer } from "./data/index.js";
 import { createSettingsManager } from "./config/settingsManager.js";

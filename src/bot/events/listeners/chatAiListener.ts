@@ -1,6 +1,5 @@
 import type { Client, Message } from "discord.js";
-import type { ChatService } from "../../../services/chatService.js";
-import { HttpError } from "../../../http/httpError.js";
+import { ChatError, type ChatService } from "../../../features/chat.js";
 
 export async function handleChatAi(
   message: Message,
@@ -87,7 +86,7 @@ export async function handleChatAi(
     // Only the errors this project authors are safe to show. Anything else —
     // an OpenAI SDK failure above all — carries quota, billing and endpoint
     // detail that has no business in a public channel.
-    if (err instanceof HttpError) {
+    if (err instanceof ChatError) {
       await message.reply(`error: ${err.message}`);
       return;
     }

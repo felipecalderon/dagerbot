@@ -5,7 +5,7 @@ import {
   Partials,
 } from "discord.js";
 import type { DataLayer } from "../data/index.js";
-import type { ChatService } from "../services/chatService.js";
+import type { ChatService } from "../features/chat.js";
 import type { SettingsManager } from "../core/types.js";
 import { createCommandManager } from "./commands/commandManager.js";
 import { registerEventDispatcher } from "./events/eventDispatcher.js";

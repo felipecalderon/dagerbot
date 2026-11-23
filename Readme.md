@@ -113,11 +113,10 @@ Puedes combinar `--global` y `--guild`. Sin argumentos, imprime la ayuda y no ha
 
 - `src/app.ts` monta el servidor Fastify: `/health` y las páginas legales.
 - `src/http/` controladores, rutas y vistas de las páginas legales.
-- `src/services/` lógica de negocio (chat).
 - `src/core/` utilidades compartidas (rate limit, tipos).
 - `src/infra/` clientes externos (OpenAI).
 - `src/bot/` cliente de Discord, comandos slash y eventos.
-- `src/features/` lógica de características independiente de Discord.
+- `src/features/` lógica de características independiente de Discord (chat, memes, canal vigilado).
 - `src/config/settingsManager.ts` configuración dinámica por servidor.
 - `src/data/` capa de datos — proveedores, repositorios y contratos.
 - MongoDB almacena la configuración y los contadores persistentes.

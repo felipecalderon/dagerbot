@@ -1,7 +1,7 @@
 import { Events, type Client } from "discord.js";
 import type { SettingsManager } from "../../core/types.js";
 import type { DataLayer } from "../../data/index.js";
-import type { ChatService } from "../../services/chatService.js";
+import type { ChatService } from "../../features/chat.js";
 import { handleMeme, handleMemeReward } from "./listeners/memeListener.js";
 import { handleChatAi } from "./listeners/chatAiListener.js";
 import { handleChannelGuard } from "./listeners/channelGuardListener.js";
