@@ -29,7 +29,7 @@ async function main() {
     allowSession,
   });
 
-  const app = buildApp({ config, chatService });
+  const app = buildApp();
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
   app.log.info(`HTTP listening on port ${config.port}`);

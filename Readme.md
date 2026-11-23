@@ -7,29 +7,11 @@ Backend en TypeScript con Fastify para chatbot de discord en el antro usando Ope
 - `GET /health` → `{ ok: true }`
 - `GET /privacy` (o `/privacy-policy`) → Página HTML de política de privacidad (o JSON con `?format=json`)
 - `GET /terms` (o `/terms-of-service`) → Página HTML de términos de servicio (o JSON con `?format=json`)
-- `GET /chat` → `{ reply: string }`
-
-### Body esperado
-
-```json
-{
-  "sessionId": "uuid",
-  "text": "hola",
-  "conversationId": "opcional"
-}
-```
-
-### Ejemplo de respuesta
-
-```json
-{ "reply": "..." }
-```
 
 ## Discord bot
 
 - Responde en DM a cualquier mensaje.
 - En servidores responde si mencionas al bot o si usas prefijo (por defecto `!`).
-- Usa el mismo backend/servicio interno que `/chat`.
 - `/config show` — muestra el estado de todos los módulos.
 - `/config meme` — configura el módulo de memes (canal, reacciones, modo solo-media, random-react).
 - `/config meme-reward` — configura la recompensa por acumulación de memes (rol, meta, mensaje).
