@@ -1,7 +1,11 @@
 import OpenAI from "openai";
 import { AppConfig } from "../config/env";
 import { SessionRepository, SessionPolicy } from "../data/types";
-import { HttpError } from "../http/httpError";
+
+// Marks an error this feature raised on purpose, as opposed to one thrown by a
+// dependency. The chat listener shows the message of the first kind and hides
+// the second, which can carry SDK internals into a public channel.
+export class ChatError extends Error {}
 
 export type ChatService = {
   sendMessage(params: {
@@ -28,21 +32,15 @@ export function createChatService(params: {
   return {
     async sendMessage({ sessionId, text, ip }) {
       if (text.length > config.maxInputChars) {
-        throw new HttpError(
-          413,
-          "input_too_large",
+        throw new ChatError(
           `Vamo a calmarno' mascapito solo te voy a decir 2 cosas: mucho texto (Max ${config.maxInputChars} chars)`,
         );
       }
       if (!allowIp(ip)) {
-        throw new HttpError(429, "rate_limited", "IP rate limit exceeded.");
+        throw new ChatError("IP rate limit exceeded.");
       }
       if (!allowSession(`session:${sessionId}`)) {
-        throw new HttpError(
-          429,
-          "rate_limited",
-          "Session rate limit exceeded.",
-        );
+        throw new ChatError("Session rate limit exceeded.");
       }
 
       const history = await sessionRepository.getHistory(sessionId, policy);
@@ -58,11 +56,7 @@ export function createChatService(params: {
 
       const reply = completion.choices[0]?.message?.content || "";
       if (!reply) {
-        throw new HttpError(
-          502,
-          "empty_response",
-          "OpenAI returned an empty response.",
-        );
+        throw new ChatError("OpenAI returned an empty response.");
       }
 
       await sessionRepository.append(sessionId, { role: "user", content: text }, policy);

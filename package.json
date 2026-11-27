@@ -1,7 +1,7 @@
 {
   "name": "dagerbot",
   "version": "1.4.2",
-  "description": "Backend en TypeScript para chat HTTP con OpenAI y Fastify; bot de Discord multi-servidor.",
+  "description": "Bot de Discord multi-servidor en TypeScript con OpenAI; Fastify solo para /health y las páginas legales.",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
